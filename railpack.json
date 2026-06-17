@@ -1,4 +1,7 @@
 {
     "provider": "php",
-    "phpExtensions": ["gd", "pdo", "pdo_mysql", "mbstring", "tokenizer", "xml", "ctype", "fileinfo", "curl", "zip", "intl", "bcmath"]
+    "phpExtensions": ["gd", "zip", "pdo", "pdo_mysql", "mbstring", "tokenizer", "xml", "ctype", "fileinfo", "curl", "intl", "bcmath"],
+    "install": {
+        "cmds": ["composer install --optimize-autoloader --no-scripts --no-interaction --ignore-platform-reqs"]
+    }
 }
