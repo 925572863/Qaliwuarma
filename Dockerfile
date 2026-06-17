@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     curl \
+    nodejs \
+    npm \
     && docker-php-ext-install gd zip pdo pdo_mysql mbstring xml intl bcmath \
     && a2enmod rewrite \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -19,9 +21,11 @@ WORKDIR /var/www/html
 
 COPY . .
 
+RUN cp package.json.bak package.json 2>/dev/null || true
+
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs --no-interaction
 
-RUN cp .env.example .env.production 2>/dev/null || true
+RUN npm install && npm run build
 
 RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache \
@@ -31,8 +35,6 @@ COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
 
 RUN touch database/database.sqlite \
     && chown www-data:www-data database/database.sqlite
-
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 
 EXPOSE 80
 
