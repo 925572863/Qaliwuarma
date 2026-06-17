@@ -1,0 +1,207 @@
+@startuml Qualiwuarma - Arquitectura del Sistema
+!theme plain
+skinparam backgroundColor #F8F9FA
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #444444
+skinparam ArrowThickness 1.5
+
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #AAAAAA
+  FontColor #222222
+  BorderThickness 1
+}
+
+skinparam package {
+  BackgroundColor #F0F4FF
+  BorderColor #6688CC
+  FontColor #2244AA
+  FontStyle bold
+  FontSize 12
+}
+
+skinparam component {
+  BackgroundColor #FFFFFF
+  BorderColor #99AACC
+  FontColor #222222
+  FontSize 10
+}
+
+skinparam database {
+  BackgroundColor #FFF8E7
+  BorderColor #CC9900
+  FontColor #333300
+}
+
+skinparam actor {
+  BackgroundColor #E8F8E8
+  BorderColor #559955
+  FontColor #224422
+}
+
+skinparam note {
+  BackgroundColor #FFFDE8
+  BorderColor #CCBB44
+  FontSize 9
+}
+
+title <b>Qualiwuarma</b> — Sistema de Gestión de Alimentación Escolar\n<size:10>Laravel 12 · PHP 8.2 · MySQL · Tailwind CSS</size>
+
+' ══════════════════════════════════════════════════════
+' ACTORES
+' ══════════════════════════════════════════════════════
+
+package "Usuarios\nFinales" as USERS_PKG #E8F8E8 {
+  actor "Director /\nAdministrador" as ADMIN
+  actor "Docentes /\nPersonal" as STAFF
+}
+
+' ══════════════════════════════════════════════════════
+' CAPA 1 — AUTENTICACIÓN
+' ══════════════════════════════════════════════════════
+
+package "Autenticación" as AUTH_PKG #FFE8E8 {
+  rectangle "**Login**\nauth/login.blade.php\n\n· email + password\n· Auth::attempt()\n· Session regenerate" as LOGIN_VIEW
+  rectangle "**AuthController**\nshowLogin()\nlogin()\nlogout()" as AUTH_CTRL
+  rectangle "**Middleware**\nguest → /login\nauth → todo lo demás" as MIDDLEWARE
+}
+
+' ══════════════════════════════════════════════════════
+' CAPA 2 — ROUTING
+' ══════════════════════════════════════════════════════
+
+package "Routing\n(routes/web.php)" as ROUTER_PKG #E8EEFF {
+  rectangle "**Route Dispatcher**\n─────────────────\n/ → /dashboard\n/login · /logout\n/dashboard\n/alumnos/**\n/pecosa/inicial/**\n/pecosa/primaria/**\n/prediccion/**" as ROUTER
+}
+
+' ══════════════════════════════════════════════════════
+' CAPA 3 — MÓDULOS FUNCIONALES
+' ══════════════════════════════════════════════════════
+
+package "Módulos de Negocio\n(Controllers + Views)" as MODULES_PKG #F0F8F0 {
+
+  rectangle "**Dashboard**\nDashboardController\n─────────────────\n· Total alumnos\n· Activos / Inactivos\n· Nuevos del mes\n· Últimos 10 registros" as MOD_DASH #E8F4FF
+
+  rectangle "**Gestión de Alumnos**\nAlumnoController\n─────────────────\n· CRUD completo\n· Filtro por nivel/sección\n· Agrupado inicial/primaria\n· Estados: activo/inactivo\n  egresado/baja" as MOD_ALU #E8FFE8
+
+  rectangle "**PECOSA Inicial**\nPecosaInicialController\n─────────────────\n· Inventario (3-5 años)\n· Carga masiva en lote\n· volumen = cant×presentacion\n· Control de stock\n· Stock bajo / crítico" as MOD_PEI #FFF0E0
+
+  rectangle "**PECOSA Primaria**\nPecosaPrimariaController\n─────────────────\n· Inventario (1°-6° grado)\n· Carga masiva en lote\n· stock_actual = volumen\n· Distribución por prorrateo" as MOD_PEP #FFF0E0
+
+  rectangle "**Predicción de Raciones**\nPrediccionController\n─────────────────\n· Registro de asistencia diaria\n· Regresión lineal (Y=mX+b)\n· Últimos 60 días de datos\n· Predice próximos 7 días\n· Métricas: MAE, RMSE, R², MAPE" as MOD_PRED #F0E8FF
+
+  rectangle "**Prorrateo**\nProrrateoController\n─────────────────\n· Distribución proporcional\n  por sección\n· Versionado histórico\n· Listado detallado por aula" as MOD_PROR #E8FFFF
+
+  rectangle "**Compras Adicionales**\nComprasAdicionalesCtrl\n─────────────────\n· Lista de compras inicial\n· Estado: pendiente/comprado\n· Toggle AJAX de estado\n· Presupuesto total" as MOD_COMP #FFFFF0
+}
+
+' ══════════════════════════════════════════════════════
+' CAPA 4 — MODELOS ELOQUENT
+' ══════════════════════════════════════════════════════
+
+package "Capa de Datos\n(Models + Query Builder)" as DATA_PKG #FFF8EC {
+
+  rectangle "**User**\nid · name · email\npassword · remember_token\n─────────────\nAuthenticatable\nauditoría → user_id" as M_USER #E8F8E8
+
+  rectangle "**Alumno**\nid · user_id · matricula\nnivel · nombre · apellidos\nfecha_nacimiento · genero\ncurp · carrera · semestre\nestado · foto\n─────────────\n@nombre_completo\n@nivel_badge · @estado_badge" as M_ALU #DDEEFF
+
+  rectangle "**PecosaInicial / PecosaPrimaria**\nid · user_id · cant · unid\ndescripcion · marca\npresentacion · volumen\nstock_actual · lote\n─────────────\n@porcentaje_stock\n@stock_bajo · @stock_critico" as M_PECOSA #FFE8CC
+
+  rectangle "**RegistroAsistencia**\nid · user_id · fecha · nivel\ngrado · seccion\ntotal_alumnos · presentes\nraciones · observaciones\n─────────────\n@ausentes · @porcentaje\nUNIQUE(fecha,nivel,grado,sec)\nINDEX(nivel, fecha)" as M_REG #E8CCFF
+
+  rectangle "**Tablas Auxiliares**\n(Query Builder)\n─────────────────\nasistencia_alumnos\nprorrateo_versiones\nprorrateo_primaria\ncompras_adicionales_inicial" as M_AUX #F0F0F0
+}
+
+' ══════════════════════════════════════════════════════
+' CAPA 5 — BASE DE DATOS
+' ══════════════════════════════════════════════════════
+
+package "Persistencia" as DB_PKG #FFF8E0 {
+  database "**MySQL**\nqualiwuarma\n─────────────────\nHost: 127.0.0.1:3306\nUser: root\nCharset: utf8mb4\n─────────────────\n9 tablas de negocio\n+ sessions / cache / jobs" as MYSQL
+}
+
+' ══════════════════════════════════════════════════════
+' SALIDAS
+' ══════════════════════════════════════════════════════
+
+package "Salidas del\nSistema" as OUTPUT_PKG #F0FFF0 {
+  rectangle "**Vistas Blade**\n+ Tailwind CSS\n(Navegador Web)" as OUT_WEB
+  rectangle "**Reportes**\nListado por aula\nHistorial de prorrateo\nPredicciones 7 días" as OUT_REP
+}
+
+' ══════════════════════════════════════════════════════
+' FLUJO DE DATOS
+' ══════════════════════════════════════════════════════
+
+ADMIN -right-> LOGIN_VIEW : HTTP Request
+STAFF -right-> LOGIN_VIEW : HTTP Request
+LOGIN_VIEW -right-> AUTH_CTRL : POST /login
+AUTH_CTRL -right-> MIDDLEWARE : session validada
+MIDDLEWARE -right-> ROUTER : HTTP autenticado
+
+ROUTER -down-> MOD_DASH : GET /dashboard
+ROUTER -down-> MOD_ALU : /alumnos/**
+ROUTER -down-> MOD_PEI : /pecosa/inicial/**
+ROUTER -down-> MOD_PEP : /pecosa/primaria/**
+ROUTER -down-> MOD_PRED : /prediccion/**
+ROUTER -down-> MOD_PROR : /prorrateo/**
+ROUTER -down-> MOD_COMP : /compras/**
+
+MOD_DASH -down-> M_ALU : stats count
+MOD_ALU -down-> M_ALU : CRUD
+MOD_PEI -down-> M_PECOSA : CRUD Inicial
+MOD_PEP -down-> M_PECOSA : CRUD Primaria
+MOD_PRED -down-> M_REG : registro + lectura
+MOD_PROR -down-> M_AUX : prorrateo versiones
+MOD_COMP -down-> M_AUX : compras
+
+AUTH_CTRL -down-> M_USER : Auth::attempt()
+M_USER -right-> M_ALU : 1:N (user_id)
+M_USER -right-> M_PECOSA : 1:N (user_id)
+M_USER -right-> M_REG : 1:N (user_id)
+
+M_ALU -right-> M_AUX : asistencia_alumnos
+M_REG -right-> M_AUX : asistencia_alumnos
+M_PECOSA -right-> M_AUX : prorrateo_primaria
+
+M_USER -down-> MYSQL : Eloquent ORM
+M_ALU -down-> MYSQL : Eloquent ORM
+M_PECOSA -down-> MYSQL : Eloquent ORM
+M_REG -down-> MYSQL : Eloquent ORM
+M_AUX -down-> MYSQL : Query Builder
+
+MOD_DASH -right-> OUT_WEB : HTML + Tailwind
+MOD_ALU -right-> OUT_WEB
+MOD_PEI -right-> OUT_WEB
+MOD_PEP -right-> OUT_WEB
+MOD_PRED -right-> OUT_WEB : gráficos + tabla
+MOD_PROR -right-> OUT_REP : listado por aula
+MOD_COMP -right-> OUT_WEB
+
+note bottom of MOD_PRED
+  **Algoritmo de Predicción**
+  1. Obtiene últimos 60 días
+  2. Agrupa por fecha (suma grados)
+  3. Calcula m y b (mínimos cuadrados)
+  4. Predice 7 días (sin fines de semana)
+  5. Evalúa: MAE, RMSE, R², MAPE
+end note
+
+note bottom of MOD_PROR
+  **Fórmula de Prorrateo**
+  cantidad_sección =
+  (total_producto × alumnos_sección)
+  ÷ total_alumnos
+end note
+
+note right of MYSQL
+  **Índices clave**
+  UNIQUE(fecha, nivel, grado, seccion)
+  INDEX(nivel, fecha)
+  CASCADE DELETE en asistencia y prorrateo
+end note
+
+@enduml

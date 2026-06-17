@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Diagrama de Arquitectura - Qualiwuarma</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #fff;
+    display: flex;
+    justify-content: center;
+    padding: 30px 20px;
+  }
+  .page { width: 720px; }
+  h1 {
+    text-align: center;
+    font-size: 13.5px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    margin-bottom: 18px;
+    color: #111;
+  }
+  .capa {
+    border-radius: 10px;
+    border: 2px solid;
+    padding: 14px 18px;
+    position: relative;
+  }
+  .capa-title {
+    text-align: center;
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 3px;
+  }
+  .capa-subtitle {
+    text-align: center;
+    font-size: 10.5px;
+    font-style: italic;
+    margin-bottom: 10px;
+    color: #444;
+  }
+  .capa-content {
+    font-size: 10.5px;
+    text-align: center;
+    line-height: 1.7;
+    color: #222;
+  }
+  .c1 { background: #ddeeff; border-color: #7aaed6; }
+  .c1 .capa-title { color: #1a4a7a; }
+  .c2 { background: #fff0d8; border-color: #e6a83c; }
+  .c2 .capa-title { color: #7a4a00; }
+  .c3 { background: #dff0d8; border-color: #7ab87a; }
+  .c3 .capa-title { color: #2a6020; }
+  .c4 { background: #f0d8e8; border-color: #c07aaa; }
+  .c4 .capa-title { color: #6a1a50; }
+  .inner-block {
+    border-radius: 6px;
+    border: 1.5px solid;
+    padding: 8px 12px;
+    margin: 8px 0;
+    text-align: center;
+    font-size: 10.5px;
+    line-height: 1.65;
+  }
+  .block-controllers { background: #fff8ec; border-color: #d4a030; }
+  .block-controllers .block-title { font-weight: bold; color: #7a4a00; margin-bottom: 4px; font-size: 10.5px; }
+  .block-models { background: #fef6ff; border-color: #b07acc; }
+  .block-models .block-title { font-weight: bold; color: #5a1a7a; margin-bottom: 4px; font-size: 10.5px; }
+  .block-engine { background: #fff3cd; border-color: #e6a010; }
+  .block-engine .block-title { font-weight: bold; color: #7a5000; margin-bottom: 4px; font-size: 10.5px; }
+  .block-tables { background: #eefaea; border-color: #5aaa5a; }
+  .block-tables .block-title { font-weight: bold; color: #1a5a1a; margin-bottom: 4px; font-size: 10.5px; }
+  .arrow-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .arrow-line { width: 1.5px; height: 20px; background: #666; }
+  .arrow-label {
+    font-size: 9px;
+    color: #555;
+    background: #fff;
+    border: 1px solid #bbb;
+    border-radius: 3px;
+    padding: 1px 7px;
+    white-space: nowrap;
+    margin: 2px 0;
+  }
+  .arrow-head {
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid #666;
+  }
+  .separator { margin: 5px 0; border: none; border-top: 1px dashed #bbb; }
+  .figura {
+    text-align: center;
+    font-size: 9.5px;
+    font-style: italic;
+    color: #444;
+    margin-top: 16px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>DIAGRAMA DE ARQUITECTURA EN CAPAS - SISTEMA QUALIWUARMA</h1>
+
+  <!-- CAPA 1 -->
+  <div class="capa c1">
+    <div class="capa-title">CAPA 1 &nbsp;&ndash;&nbsp; PRESENTACI&Oacute;N (Frontend)</div>
+    <div class="capa-subtitle">Interfaz de usuario &middot; captura de datos &middot; visualizaci&oacute;n</div>
+    <div class="capa-content">
+      <strong>Vistas Blade</strong> &nbsp;|&nbsp;
+      <strong>Tailwind CSS</strong> (CDN) &nbsp;|&nbsp;
+      <strong>Alpine.js</strong> (CDN) &nbsp;|&nbsp;
+      <strong>Chart.js</strong> (CDN)
+      <br>
+      Login &middot; Dashboard &middot; Alumnos &middot; PECOSA Inicial &middot; PECOSA Primaria
+      <br>
+      Predicci&oacute;n &middot; Prorrateo &middot; Compras Adicionales
+    </div>
+  </div>
+
+  <!-- FLECHA 1 -->
+  <div class="arrow-wrapper">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">HTTP &nbsp;(GET / POST / PUT / DELETE)</div>
+    <div class="arrow-line"></div>
+    <div class="arrow-head"></div>
+  </div>
+
+  <!-- CAPA 2 -->
+  <div class="capa c2">
+    <div class="capa-title">CAPA 2 &nbsp;&ndash;&nbsp; L&Oacute;GICA DE NEGOCIO (Backend)</div>
+    <div class="capa-subtitle">Reglas del CAE &middot; validaci&oacute;n &middot; enrutamiento &middot; seguridad</div>
+
+    <div class="inner-block block-controllers">
+      <div class="block-title">CONTROLADORES</div>
+      AuthController &middot; DashboardController &middot; AlumnoController<br>
+      PecosaInicialController &middot; PecosaPrimariaController<br>
+      PrediccionController &middot; ProrrateoController &middot; ComprasAdicionalesController
+    </div>
+
+    <div class="inner-block block-models">
+      <div class="block-title">MODELOS ELOQUENT</div>
+      User &middot; Alumno &middot; PecosaInicial &middot; PecosaPrimaria &middot; RegistroAsistencia
+    </div>
+
+    <div class="inner-block block-engine">
+      <div class="block-title">Motor de Predicci&oacute;n: Regresi&oacute;n Lineal OLS en PHP</div>
+      60 d&iacute;as hist&oacute;ricos &rarr; 7 d&iacute;as h&aacute;biles proyectados<br>
+      M&eacute;tricas: MAE &middot; RMSE &middot; R&sup2; &middot; MAPE
+      <hr class="separator">
+      Importaci&oacute;n masiva: <strong>PhpSpreadsheet</strong> &middot; multi-hoja (.xlsx)
+    </div>
+  </div>
+
+  <!-- FLECHA 2 -->
+  <div class="arrow-wrapper">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">Eloquent ORM &nbsp;(mapeo objeto-relacional)</div>
+    <div class="arrow-line"></div>
+    <div class="arrow-head"></div>
+  </div>
+
+  <!-- CAPA 3 -->
+  <div class="capa c3">
+    <div class="capa-title">CAPA 3 &nbsp;&ndash;&nbsp; PERSISTENCIA (Base de Datos)</div>
+    <div class="capa-subtitle">Almacenamiento estructurado &middot; integridad referencial</div>
+    <div class="capa-content">
+      <strong>MySQL 8.0</strong> &nbsp;(motor InnoDB &middot; soporte transaccional)
+    </div>
+
+    <div class="inner-block block-tables">
+      <div class="block-title">TABLAS</div>
+      users &middot; alumnos &middot; registros_asistencia &middot; asistencia_alumnos<br>
+      pecosa_inicial &middot; pecosa_primaria<br>
+      prorrateo_versiones &middot; prorrateo_primaria &middot; compras_adicionales_inicial
+    </div>
+
+    <div class="capa-content" style="margin-top:6px; font-size:10px; color:#2a5020;">
+      UNIQUE(fecha, nivel, grado, seccion) &middot; Restricci&oacute;n anti-duplicado<br>
+      FK: asistencia_alumnos &rarr; registros_asistencia &rarr; alumnos<br>
+      FK: prorrateo_primaria &rarr; prorrateo_versiones &middot; prorrateo_primaria &rarr; pecosa_primaria
+    </div>
+  </div>
+
+  <!-- FLECHA 3 -->
+  <div class="arrow-wrapper">
+    <div class="arrow-line"></div>
+    <div class="arrow-label">Despliegue sobre infraestructura local</div>
+    <div class="arrow-line"></div>
+    <div class="arrow-head"></div>
+  </div>
+
+  <!-- CAPA 4 -->
+  <div class="capa c4">
+    <div class="capa-title">CAPA 4 &nbsp;&ndash;&nbsp; INFRAESTRUCTURA</div>
+    <div class="capa-subtitle">Entorno de ejecuci&oacute;n y despliegue</div>
+    <div class="capa-content">
+      <strong>Windows 11</strong> &nbsp;|&nbsp;
+      <strong>PHP 8.2</strong> &nbsp;|&nbsp;
+      <strong>Laravel 12</strong> &nbsp;|&nbsp;
+      PHP Artisan Serve<br>
+      Composer &nbsp;|&nbsp; PhpSpreadsheet &nbsp;|&nbsp; http://localhost:8000
+    </div>
+  </div>
+
+  <div class="figura">
+    Figura 7. Diagrama de arquitectura en capas del sistema Qualiwuarma.<br>
+    Fuente: Elaboraci&oacute;n propia (2026).
+  </div>
+
+</div>
+</body>
+</html>
