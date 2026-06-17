@@ -301,7 +301,7 @@
                 </div>
             </form>
 
-            <p class="text-center text-slate-400 dark:text-slate-700 text-xs mt-8">&copy; {{ date('Y') }} Qualiwuarma</p>
+            <p class="text-center text-slate-400 dark:text-slate-700 text-xs mt-8">&copy; {{ date('Y') }} Qaliwuarma</p>
         </div>
     </div>
 
@@ -451,4 +451,5 @@ if (canvas) {
 }
 </script>
 @endpush
+
 
