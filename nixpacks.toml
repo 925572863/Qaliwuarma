@@ -13,3 +13,7 @@ cmds = [
 
 [start]
 cmd = "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT"
+
+[variables]
+NPM_CONFIG_PRODUCTION = "false"
+NIXPACKS_NO_NODE = "1"
