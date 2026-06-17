@@ -11,7 +11,7 @@ fi
 # Override with environment variables
 sed -i "s|APP_ENV=.*|APP_ENV=production|g" .env
 sed -i "s|APP_DEBUG=.*|APP_DEBUG=false|g" .env
-sed -i "s|APP_URL=.*|APP_URL=${APP_URL:-http://localhost}|g" .env
+sed -i "s|APP_URL=.*|APP_URL=${APP_URL:-https://qaliwuarma.onrender.com}|g" .env
 sed -i "s|SESSION_DRIVER=.*|SESSION_DRIVER=file|g" .env
 sed -i "s|CACHE_STORE=.*|CACHE_STORE=file|g" .env
 sed -i "s|QUEUE_CONNECTION=.*|QUEUE_CONNECTION=sync|g" .env
