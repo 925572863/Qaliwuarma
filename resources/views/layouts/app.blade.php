@@ -11,13 +11,13 @@
             document.documentElement.classList.remove('dark');
         }
     </script>
-    <script src="{{ asset('js/tailwind.min.js') }}"></script>
+    <script src="/js/tailwind.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
         }
     </script>
-    <script defer src="{{ asset('js/alpine.min.js') }}"></script>
+    <script defer src="/js/alpine.min.js"></script>
     <style>[x-cloak] { display: none !important; }</style>
     @stack('styles')
 </head>
@@ -34,7 +34,7 @@
         {{-- Logo --}}
         <div class="px-6 py-5 flex items-center space-x-3 border-b border-gray-100 dark:border-slate-700">
             <div class="w-11 h-11 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center p-0.5">
-                <img src="{{ asset('images/escudo.png') }}"
+                <img src="/images/escudo.png"
                      alt="Escudo"
                      class="w-full h-full object-contain">
             </div>
@@ -343,3 +343,4 @@ function closeSidebar() {
 </script>
 </body>
 </html>
+

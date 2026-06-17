@@ -11,7 +11,7 @@
             document.documentElement.classList.remove('dark');
         }
     </script>
-    <script src="{{ asset('js/tailwind.min.js') }}"></script>
+    <script src="{{ '/js/tailwind.min.js' }}"></script>
     <script>tailwind.config = { darkMode: 'class' };</script>
     @stack('styles')
 </head>

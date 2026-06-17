@@ -559,7 +559,7 @@
 
 @push('scripts')
 @if(count($historico) >= 2)
-<script src="{{ asset('js/chart.min.js') }}"></script>
+<script src="{{ '/js/chart.min.js' }}"></script>
 <script>
 (function () {
     const historico   = @json($historico);

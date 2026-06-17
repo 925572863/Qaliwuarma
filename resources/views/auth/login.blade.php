@@ -155,7 +155,7 @@
     <div class="hidden lg:flex lg:w-1/2 relative overflow-hidden">
 
         <div class="absolute inset-0 bg-cover bg-center bg-no-repeat"
-             style="background-image: url('{{ asset('images/fondo.png') }}')"></div>
+             style="background-image: url('/images/fondo.png')"></div>
         <div class="absolute inset-0 bg-gradient-to-br from-black/50 via-indigo-950/40 to-black/70"></div>
 
         {{-- Partículas --}}
@@ -171,7 +171,7 @@
                 <div class="ring-1"></div>
                 <div class="ring-2"></div>
                 @if(file_exists(public_path('images/escudo.png')))
-                    <img src="{{ asset('images/escudo.png') }}" alt="Insignia"
+                    <img src="/images/escudo.png" alt="Insignia"
                          class="w-48 h-48 object-contain relative z-10 drop-shadow-2xl">
                 @else
                     <div class="w-44 h-44 rounded-full bg-white/15 backdrop-blur-md border-2 border-white/30
@@ -214,7 +214,7 @@
             {{-- Logo pequeño --}}
             <div class="text-center mb-8">
                 @if(file_exists(public_path('images/escudo.png')))
-                    <img src="{{ asset('images/escudo.png') }}" alt="Escudo"
+                    <img src="/images/escudo.png" alt="Escudo"
                          class="w-16 h-16 object-contain mx-auto mb-4 drop-shadow-xl">
                 @else
                     <div class="w-14 h-14 rounded-xl mx-auto mb-4 flex items-center justify-center text-lg font-black text-white"
@@ -451,3 +451,4 @@ if (canvas) {
 }
 </script>
 @endpush
+
