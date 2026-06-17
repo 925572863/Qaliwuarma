@@ -1,5 +1,6 @@
 {
     "provider": "php",
+    "phpVersion": "8.3",
     "phpExtensions": ["gd", "zip", "pdo", "pdo_mysql", "mbstring", "tokenizer", "xml", "ctype", "fileinfo", "curl", "intl", "bcmath"],
     "install": {
         "cmds": ["composer install --optimize-autoloader --no-scripts --no-interaction --ignore-platform-reqs"]
