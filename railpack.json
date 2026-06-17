@@ -1,0 +1,4 @@
+{
+    "provider": "php",
+    "phpExtensions": ["gd", "pdo", "pdo_mysql", "mbstring", "tokenizer", "xml", "ctype", "fileinfo", "curl", "zip", "intl", "bcmath"]
+}
