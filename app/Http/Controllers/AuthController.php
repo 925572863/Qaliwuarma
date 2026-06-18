@@ -34,10 +34,9 @@ class AuthController extends Controller
             ]);
         }
 
-        if (Auth::attempt($request->only('email', 'password'))) {
+        if (Auth::attempt($request->only('email', 'password'), true)) {
             RateLimiter::clear($key);
-            $request->session()->put('logged_in', true);
-            $request->session()->save();
+            $request->session()->regenerate();
             return redirect()->intended(route('dashboard'));
         }
 

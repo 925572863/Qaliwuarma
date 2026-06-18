@@ -36,12 +36,10 @@ chmod 777 database/database.sqlite
 php artisan migrate --force
 php artisan db:seed --force
 
-# Clear old cache and rebuild
+# Clear all cache - NO caching to avoid stale config
 php artisan config:clear
 php artisan route:clear
 php artisan view:clear
-php artisan config:cache
-php artisan route:cache
 
 # Start Apache
 apache2-foreground
