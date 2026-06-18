@@ -295,7 +295,11 @@
         </header>
 
         {{-- Page content --}}
-        <main class="flex-1 overflow-y-auto p-6">
+        <main class="flex-1 overflow-y-auto p-3 lg:p-6">
+        <style>
+            table { width: 100%; }
+            .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        </style>
 
             @if(session('success'))
                 <div class="mb-5 flex items-center space-x-2 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
