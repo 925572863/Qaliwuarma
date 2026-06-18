@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Qali Warma')</title>
+    <title>@yield('title', 'PAE')</title>
     <script>
         if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
@@ -39,7 +39,7 @@
                      class="w-full h-full object-contain">
             </div>
             <div>
-                <p class="font-bold text-slate-800 dark:text-white text-sm leading-tight">Qali Warma</p>
+                <p class="font-bold text-slate-800 dark:text-white text-sm leading-tight">PAE</p>
                 <p class="text-xs text-slate-400">Gestión Escolar</p>
             </div>
         </div>
@@ -342,4 +342,5 @@ function closeSidebar() {
 </script>
 </body>
 </html>
+
 

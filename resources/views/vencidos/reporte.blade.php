@@ -37,7 +37,7 @@
         <p class="text-xs uppercase tracking-widest text-gray-500">Comité de Alimentación Escolar — CAE</p>
         <h2 class="text-sm font-bold text-gray-700 mt-0.5">I.E. 14008 Leonor Cerna de Valdiviezo — Piura</h2>
         <h1 class="text-xl font-black text-gray-900 mt-2 uppercase tracking-wide">Reporte de Control de Vencimientos</h1>
-        <p class="text-xs text-gray-500 mt-1">Programa Qali Warma &nbsp;|&nbsp; Fecha de emisión: {{ now()->format('d/m/Y H:i') }}</p>
+        <p class="text-xs text-gray-500 mt-1">Programa PAE &nbsp;|&nbsp; Fecha de emisión: {{ now()->format('d/m/Y H:i') }}</p>
     </div>
 
     {{-- Resumen general --}}
@@ -189,3 +189,4 @@
 
 </body>
 </html>
+

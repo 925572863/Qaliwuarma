@@ -185,7 +185,7 @@
                     I.E. Leonor Cerna de Valdiviezo
                 </p>
                 <p class="text-sm text-white/55 tracking-widest uppercase mb-8">
-                    Gestión Escolar · Qali Warma
+                    Gestión Escolar · PAE
                 </p>
             </div>
 
@@ -301,7 +301,7 @@
                 </div>
             </form>
 
-            <p class="text-center text-slate-400 dark:text-slate-700 text-xs mt-8">&copy; {{ date('Y') }} Qaliwuarma</p>
+            <p class="text-center text-slate-400 dark:text-slate-700 text-xs mt-8">&copy; {{ date('Y') }} PAE</p>
         </div>
     </div>
 
@@ -451,5 +451,6 @@ if (canvas) {
 }
 </script>
 @endpush
+
 
 

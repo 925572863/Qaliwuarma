@@ -9,6 +9,7 @@ if [ ! -f .env ]; then
 fi
 
 # Override with environment variables
+sed -i "s|APP_NAME=.*|APP_NAME=PAE|g" .env
 sed -i "s|APP_ENV=.*|APP_ENV=production|g" .env
 sed -i "s|APP_URL=.*|APP_URL=https://qaliwuarma.onrender.com|g" .env
 echo "FORCE_HTTPS=true" >> .env

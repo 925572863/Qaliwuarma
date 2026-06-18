@@ -22,7 +22,7 @@
 
 {{-- Encabezado visible solo al imprimir --}}
 <div class="hidden print-show mb-6 text-center border-b pb-4">
-    <p class="text-xs text-gray-500 uppercase tracking-wide">I.E. 14008 Leonor Cerna de Valdiviezo — Programa Qali Warma</p>
+    <p class="text-xs text-gray-500 uppercase tracking-wide">I.E. 14008 Leonor Cerna de Valdiviezo — Programa PAE</p>
     <h1 class="text-xl font-bold text-gray-800 mt-1">Reporte de Control de Vencimientos</h1>
     <p class="text-xs text-gray-500 mt-1">Fecha: {{ now()->format('d/m/Y H:i') }}</p>
 </div>
@@ -258,3 +258,4 @@
 @endpush
 
 @endsection
+
