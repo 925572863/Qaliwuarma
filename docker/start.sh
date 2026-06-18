@@ -17,6 +17,8 @@ sed -i "s|APP_URL=.*|APP_URL=${APP_URL:-https://qaliwuarma.onrender.com}|g" .env
 sed -i "s|SESSION_DRIVER=.*|SESSION_DRIVER=file|g" .env
 sed -i "s|CACHE_STORE=.*|CACHE_STORE=file|g" .env
 sed -i "s|QUEUE_CONNECTION=.*|QUEUE_CONNECTION=sync|g" .env
+sed -i "s|SESSION_DOMAIN=.*|SESSION_DOMAIN=qaliwuarma.onrender.com|g" .env
+sed -i "s|SESSION_SECURE_COOKIE=.*|SESSION_SECURE_COOKIE=false|g" .env
 
 # Set APP_KEY if provided via environment
 if [ -n "$APP_KEY" ]; then
