@@ -27,7 +27,8 @@ touch database/database.sqlite
 
 # Fix permissions
 chown -R www-data:www-data storage bootstrap/cache database
-chmod -R 775 storage bootstrap/cache database
+chmod -R 777 storage bootstrap/cache database
+chmod 777 database/database.sqlite
 
 # Run migrations and seed
 php artisan migrate --force
