@@ -34,13 +34,22 @@ class AuthController extends Controller
             ]);
         }
 
+        // Bloqueo por IP también (independiente del email)
+        $ipKey = 'login_ip|' . $request->ip();
+        if (RateLimiter::tooManyAttempts($ipKey, 10)) {
+            throw ValidationException::withMessages([
+                'email' => 'Demasiados intentos desde tu IP. Intenta más tarde.',
+            ]);
+        }
+
         if (Auth::attempt($request->only('email', 'password'), true)) {
             RateLimiter::clear($key);
             $request->session()->regenerate();
             return redirect()->intended(route('dashboard'));
         }
 
-        RateLimiter::hit($key, 60);
+        RateLimiter::hit($key, 300);
+        RateLimiter::hit($ipKey, 300);
 
         return back()->withErrors([
             'email' => 'Las credenciales no coinciden con nuestros registros.',
