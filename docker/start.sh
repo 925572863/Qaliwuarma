@@ -10,6 +10,8 @@ fi
 
 # Override with environment variables
 sed -i "s|APP_ENV=.*|APP_ENV=production|g" .env
+sed -i "s|APP_URL=.*|APP_URL=https://qaliwuarma.onrender.com|g" .env
+echo "FORCE_HTTPS=true" >> .env
 sed -i "s|APP_DEBUG=.*|APP_DEBUG=false|g" .env
 sed -i "s|APP_URL=.*|APP_URL=${APP_URL:-https://qaliwuarma.onrender.com}|g" .env
 sed -i "s|SESSION_DRIVER=.*|SESSION_DRIVER=file|g" .env
