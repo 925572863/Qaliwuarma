@@ -222,8 +222,7 @@
                     <p class="text-sm font-medium text-slate-800 dark:text-white truncate">{{ Auth::user()->name }}</p>
                     <p class="text-xs text-slate-500 dark:text-slate-400 truncate">{{ Auth::user()->email }}</p>
                 </div>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
+                <form method="GET" action="{{ route('logout') }}">
                     <button type="submit" title="Cerrar sesión"
                             class="text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors p-1 rounded">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
