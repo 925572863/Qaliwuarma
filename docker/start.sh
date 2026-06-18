@@ -29,8 +29,9 @@ touch database/database.sqlite
 chown -R www-data:www-data storage bootstrap/cache database
 chmod -R 775 storage bootstrap/cache database
 
-# Run migrations
+# Run migrations and seed
 php artisan migrate --force
+php artisan db:seed --force
 
 # Clear old cache and rebuild
 php artisan config:clear
