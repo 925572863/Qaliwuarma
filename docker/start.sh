@@ -14,7 +14,7 @@ sed -i "s|APP_URL=.*|APP_URL=https://qaliwuarma.onrender.com|g" .env
 echo "FORCE_HTTPS=true" >> .env
 sed -i "s|APP_DEBUG=.*|APP_DEBUG=false|g" .env
 sed -i "s|APP_URL=.*|APP_URL=${APP_URL:-https://qaliwuarma.onrender.com}|g" .env
-sed -i "s|SESSION_DRIVER=.*|SESSION_DRIVER=file|g" .env
+sed -i "s|SESSION_DRIVER=.*|SESSION_DRIVER=cookie|g" .env
 sed -i "s|CACHE_STORE=.*|CACHE_STORE=file|g" .env
 sed -i "s|QUEUE_CONNECTION=.*|QUEUE_CONNECTION=sync|g" .env
 sed -i "s|SESSION_DOMAIN=.*|SESSION_DOMAIN=null|g" .env
