@@ -24,17 +24,13 @@ echo "SESSION_SAME_SITE=lax" >> .env
 # Set fixed APP_KEY
 sed -i "s|APP_KEY=.*|APP_KEY=base64:oXHr5gyDsE4LV38ue6AkK/leDC464GTIzv/U8zccOTw=|g" .env
 
-# Ensure sqlite db exists
-touch database/database.sqlite
-
 # Fix permissions
 chown -R www-data:www-data storage bootstrap/cache database
 chmod -R 777 storage bootstrap/cache database
 chmod 777 database/database.sqlite
 
-# Run migrations and seed
+# Run migrations only (no seed - data already in DB)
 php artisan migrate --force
-php artisan db:seed --force
 
 # Clear all cache - NO caching to avoid stale config
 php artisan config:clear
