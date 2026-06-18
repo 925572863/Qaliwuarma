@@ -36,7 +36,8 @@ class AuthController extends Controller
 
         if (Auth::attempt($request->only('email', 'password'))) {
             RateLimiter::clear($key);
-            $request->session()->regenerate();
+            $request->session()->put('logged_in', true);
+            $request->session()->save();
             return redirect()->intended(route('dashboard'));
         }
 
