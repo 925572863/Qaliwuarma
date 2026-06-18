@@ -20,13 +20,8 @@ sed -i "s|QUEUE_CONNECTION=.*|QUEUE_CONNECTION=sync|g" .env
 sed -i "s|SESSION_DOMAIN=.*|SESSION_DOMAIN=qaliwuarma.onrender.com|g" .env
 sed -i "s|SESSION_SECURE_COOKIE=.*|SESSION_SECURE_COOKIE=false|g" .env
 
-# Set APP_KEY if provided via environment
-if [ -n "$APP_KEY" ]; then
-    sed -i "s|APP_KEY=.*|APP_KEY=${APP_KEY}|g" .env
-fi
-
-# Generate key if empty
-php artisan key:generate --force 2>/dev/null || true
+# Set fixed APP_KEY
+sed -i "s|APP_KEY=.*|APP_KEY=base64:oXHr5gyDsE4LV38ue6AkK/leDC464GTIzv/U8zccOTw=|g" .env
 
 # Ensure sqlite db exists
 touch database/database.sqlite
