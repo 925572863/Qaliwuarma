@@ -30,14 +30,27 @@
 function abrirModal(id) { document.getElementById(id).classList.remove('hidden'); }
 function cerrarModal(id) { document.getElementById(id).classList.add('hidden'); }
 document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ cerrarModal('modal-primaria'); cerrarModal('modal-inicial'); }});
+
+function cambiarTab(tab) {
+    ['primaria','inicial'].forEach(function(t) {
+        document.getElementById('tab-content-' + t).classList.toggle('hidden', t !== tab);
+        document.getElementById('btn-tab-' + t).classList.toggle('bg-white', t === tab);
+        document.getElementById('btn-tab-' + t).classList.toggle('shadow-sm', t === tab);
+        document.getElementById('btn-tab-' + t).classList.toggle(t === 'primaria' ? 'text-blue-600' : 'text-amber-600', t === tab);
+        document.getElementById('btn-tab-' + t).classList.toggle('text-gray-500', t !== tab);
+    });
+    document.getElementById('btn-importar-primaria').classList.toggle('hidden', tab !== 'primaria');
+    document.getElementById('btn-importar-inicial').classList.toggle('hidden', tab !== 'inicial');
+}
+document.addEventListener('DOMContentLoaded', function(){ cambiarTab('primaria'); });
 </script>
 
-<div x-data="{ tab: 'primaria' }">
+<div>
     {{-- Tabs + botón importar --}}
     <div class="flex items-center justify-between mb-6">
     <div class="flex items-center space-x-1 bg-gray-100 p-1 rounded-xl w-fit">
-        <button @click="tab = 'primaria'"
-                :class="tab === 'primaria' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'"
+        <button id="btn-tab-primaria"
+                onclick="cambiarTab('primaria')"
                 class="px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center space-x-2">
             <div class="w-2 h-2 rounded-full bg-blue-500"></div>
             <span>PRIMARIA</span>
@@ -45,8 +58,8 @@ document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ cerrarMo
                 {{ $seccionesPorNivel->has('primaria') ? $seccionesPorNivel['primaria']->flatten()->count() : 0 }}
             </span>
         </button>
-        <button @click="tab = 'inicial'"
-                :class="tab === 'inicial' ? 'bg-white shadow-sm text-amber-600' : 'text-gray-500 hover:text-gray-700'"
+        <button id="btn-tab-inicial"
+                onclick="cambiarTab('inicial')"
                 class="px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center space-x-2">
             <div class="w-2 h-2 rounded-full bg-amber-500"></div>
             <span>INICIAL</span>
@@ -57,7 +70,7 @@ document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ cerrarMo
     </div>
 
     {{-- Botón importar Primaria --}}
-    <button x-show="tab === 'primaria'" x-cloak
+    <button id="btn-importar-primaria"
             onclick="abrirModal('modal-primaria')"
             class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors shadow-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -66,9 +79,9 @@ document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ cerrarMo
         <span>Importar Excel Primaria</span>
     </button>
     {{-- Botón importar Inicial --}}
-    <button x-show="tab === 'inicial'" x-cloak
+    <button id="btn-importar-inicial"
             onclick="abrirModal('modal-inicial')"
-            class="inline-flex items-center space-x-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors shadow-sm">
+            class="hidden inline-flex items-center space-x-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors shadow-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
         </svg>
@@ -297,10 +310,9 @@ document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ cerrarMo
     </div>
 
     {{-- Content --}}
-    <template x-if="true">
-        <div class="space-y-6">
-            @foreach(['primaria', 'inicial'] as $nivel)
-                <div x-show="tab === '{{ $nivel }}'" x-cloak>
+    <div class="space-y-6">
+        @foreach(['primaria', 'inicial'] as $nivel)
+            <div id="tab-content-{{ $nivel }}" class="hidden">
                     @php
                         $secciones = $seccionesPorNivel->get($nivel, collect());
                         $grados = [];
@@ -444,9 +456,8 @@ document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ cerrarMo
                         </div>
                     @endif
                 </div>
-            @endforeach
-        </div>
-    </template>
+        @endforeach
+    </div>
 </div>
 
 @endsection
