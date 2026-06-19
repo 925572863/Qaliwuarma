@@ -144,8 +144,8 @@
     @endif
 
     {{-- Receta para la IA --}}
-    <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden" x-data="{ abierto: false }">
-        <button @click="abierto = !abierto"
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <button onclick="toggleAcordeonP('acord-receta')"
                 class="w-full px-6 py-4 bg-gray-50 flex items-center justify-between hover:bg-gray-100 transition-colors">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -158,12 +158,12 @@
                     <p class="text-xs text-gray-400 mt-0.5">Escribe los ingredientes y la IA calculará las cantidades según los alumnos predichos</p>
                 </div>
             </div>
-            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300 flex-shrink-0" :class="abierto ? 'rotate-180' : ''"
+            <svg id="arrow-acord-receta" class="w-5 h-5 text-gray-400 transition-transform duration-300 flex-shrink-0"
                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
         </button>
-        <div x-show="abierto" x-transition.opacity.duration.200ms class="px-6 py-5 space-y-3">
+        <div id="acord-receta" class="hidden px-6 py-5 space-y-3">
             <form method="POST" action="{{ route('prediccion.guardar-receta') }}">
                 @csrf
                 <input type="hidden" name="nivel" value="{{ $nivel }}">
@@ -210,8 +210,8 @@
             'bg-purple-50 border-purple-200 text-purple-800',
         ];
     @endphp
-    <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden" x-data="{ abierto: false }">
-        <button @click="abierto = !abierto" class="w-full px-6 py-4 border-b border-purple-700 bg-purple-600 flex items-center justify-between gap-3 hover:bg-purple-700 transition-colors">
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <button onclick="toggleAcordeonP('acord-ia')" class="w-full px-6 py-4 border-b border-purple-700 bg-purple-600 flex items-center justify-between gap-3 hover:bg-purple-700 transition-colors">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -223,13 +223,12 @@
                     <p class="text-xs text-purple-200 mt-0.5">Basado en tus registros · se actualiza al registrar nueva asistencia</p>
                 </div>
             </div>
-            <svg class="w-5 h-5 text-white/70 transition-transform duration-300 flex-shrink-0"
-                 :class="abierto ? 'rotate-180' : ''"
+            <svg id="arrow-acord-ia" class="w-5 h-5 text-white/70 transition-transform duration-300 flex-shrink-0"
                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
         </button>
-        <div x-show="abierto" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2" class="p-5 space-y-3">
+        <div id="acord-ia" class="hidden p-5 space-y-3">
             @if(count($secciones) >= 2)
                 @foreach($secciones as $i => $sec)
                 @php $color = $colores[$i] ?? 'bg-gray-50 border-gray-200 text-gray-800'; @endphp
@@ -293,19 +292,19 @@
 
     {{-- Tabla por aula (solo inicial) — colapsable --}}
     @if($nivel === 'inicial' && count($aulas) > 0 && count($porFecha) > 0)
-    <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden" x-data="{ abierto: false }">
-        <button @click="abierto = !abierto"
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <button onclick="toggleAcordeonP('acord-aula')"
                 class="w-full px-6 py-4 bg-gray-50 flex items-center justify-between hover:bg-gray-100 transition-colors">
             <div class="text-left">
                 <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Asistencia por Aula — Últimos 60 días</h3>
                 <p class="text-xs text-gray-400 mt-0.5">{{ count($aulas) }} aulas · {{ count($porFecha) }} días registrados · click para ver</p>
             </div>
-            <svg class="w-5 h-5 text-gray-400 transition-transform duration-300 flex-shrink-0" :class="abierto ? 'rotate-180' : ''"
+            <svg id="arrow-acord-aula" class="w-5 h-5 text-gray-400 transition-transform duration-300 flex-shrink-0"
                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
         </button>
-        <div x-show="abierto" x-transition.opacity.duration.200ms class="overflow-x-auto">
+        <div id="acord-aula" class="hidden overflow-x-auto">
             <table class="text-xs border-collapse" style="min-width: max-content">
                 <thead>
                     <tr class="bg-yellow-500 text-white uppercase">
@@ -702,6 +701,13 @@
 @endif
 
 <script>
+function toggleAcordeonP(id) {
+    var el = document.getElementById(id);
+    var arrow = document.getElementById('arrow-' + id);
+    el.classList.toggle('hidden');
+    if (arrow) arrow.classList.toggle('rotate-180');
+}
+
 function verDetalle(fecha, nivel, grado, seccion) {
     const modal    = document.getElementById('modal-detalle');
     const loading  = document.getElementById('modal-loading');
