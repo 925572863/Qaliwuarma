@@ -5,11 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'PAE')</title>
     <script>
-        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
+        (function(){
+            var dark = localStorage.getItem('color-theme') === 'dark' ||
+                       (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            if (dark) {
+                document.documentElement.classList.add('dark');
+                document.documentElement.style.backgroundColor = '#111827';
+            } else {
+                document.documentElement.style.backgroundColor = '#f3f4f6';
+            }
+        })();
     </script>
     <script src="/js/tailwind.min.js"></script>
     <script>
