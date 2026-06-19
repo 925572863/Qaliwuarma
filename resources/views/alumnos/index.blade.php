@@ -360,14 +360,14 @@ document.addEventListener('DOMContentLoaded', function(){ cambiarTab('primaria')
                                                 <span class="text-white/60 text-[10px] font-bold uppercase">{{ count($seccionesDelGrado) }} Secciones &middot; {{ collect($seccionesDelGrado)->flatten()->count() }} Alumnos</span>
                                             </div>
                                         </div>
-                                        <svg id="arrow-{{ $gradoId }}" class="w-5 h-5 text-white/50 transition-transform duration-300 rotate-180"
+                                        <svg id="arrow-{{ $gradoId }}" class="w-5 h-5 text-white/50 transition-transform duration-300"
                                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                         </svg>
                                     </button>
 
                                     {{-- Secciones --}}
-                                    <div id="{{ $gradoId }}" class="divide-y divide-gray-50">
+                                    <div id="{{ $gradoId }}" class="hidden divide-y divide-gray-50">
                                         @foreach($seccionesDelGrado as $carrera => $lista)
                                             @php
                                                 $si++;
@@ -393,7 +393,7 @@ document.addEventListener('DOMContentLoaded', function(){ cambiarTab('primaria')
                                                             <span class="text-[10px] font-bold text-gray-400 uppercase">Total</span>
                                                         </div>
                                                         <div class="p-1.5 rounded-lg bg-gray-50 transition-colors">
-                                                            <svg id="arrow-{{ $secId }}" class="w-4 h-4 text-gray-400 transition-transform duration-300 rotate-180"
+                                                            <svg id="arrow-{{ $secId }}" class="w-4 h-4 text-gray-400 transition-transform duration-300"
                                                                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                                             </svg>
@@ -401,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function(){ cambiarTab('primaria')
                                                     </div>
                                                 </button>
 
-                                                <div id="{{ $secId }}" class="border-t border-gray-50 bg-gray-50/30">
+                                                <div id="{{ $secId }}" class="hidden border-t border-gray-50 bg-gray-50/30">
                                                     <div class="overflow-x-auto">
                                                         <table class="w-full text-left">
                                                             <thead>
