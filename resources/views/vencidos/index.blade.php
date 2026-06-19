@@ -28,18 +28,15 @@
 </div>
 
 {{-- Resumen --}}
-<div class="grid grid-cols-3 gap-4 mb-6">
-    <div class="bg-red-50 border border-red-200 rounded-xl px-5 py-4 flex items-center gap-4">
-        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-            </svg>
-        </div>
-        <div>
-            <p class="text-2xl font-black text-red-700">{{ $vencidos->count() }}</p>
-            <p class="text-xs font-semibold text-red-500 uppercase tracking-wide">Vencidos</p>
-        </div>
-    </div>
+@if($vencidos->count())
+<div class="mb-4 bg-red-50 border border-red-200 rounded-xl px-5 py-3 flex items-center gap-3">
+    <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+    </svg>
+    <p class="text-sm text-red-700 font-semibold">Atención: hay <strong>{{ $vencidos->count() }}</strong> producto(s) vencido(s) que deben retirarse del inventario.</p>
+</div>
+@endif
+<div class="grid grid-cols-2 gap-4 mb-6">
     <div class="bg-yellow-50 border border-yellow-200 rounded-xl px-5 py-4 flex items-center gap-4">
         <div class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
             <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,61 +60,6 @@
         </div>
     </div>
 </div>
-
-{{-- VENCIDOS --}}
-@if($vencidos->count())
-<div class="mb-6">
-    <div class="flex items-center gap-2 mb-3">
-        <span class="inline-flex items-center gap-1.5 bg-red-100 text-red-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
-            <span class="w-2 h-2 bg-red-500 rounded-full"></span>
-            Vencidos
-        </span>
-        <span class="text-xs text-gray-400">— deben retirarse del inventario</span>
-    </div>
-    <div class="bg-white rounded-xl border border-red-200 overflow-hidden shadow-sm">
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="bg-red-600 text-white text-[10px] uppercase tracking-wide">
-                    <th class="px-4 py-2.5 text-left">Descripción</th>
-                    <th class="px-4 py-2.5 text-left">Nivel</th>
-                    <th class="px-4 py-2.5 text-left">Marca</th>
-                    <th class="px-4 py-2.5 text-left">Lote</th>
-                    <th class="px-4 py-2.5 text-center">Cant.</th>
-                    <th class="px-4 py-2.5 text-center">Venc.</th>
-                    <th class="px-4 py-2.5 text-center">Días vencido</th>
-                    <th class="px-4 py-2.5 text-center">Editar</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-red-50">
-                @foreach($vencidos as $p)
-                <tr class="hover:bg-red-50 transition-colors">
-                    <td class="px-4 py-2.5 font-medium text-gray-800">{{ $p['descripcion'] }}</td>
-                    <td class="px-4 py-2.5">
-                        <span class="text-xs px-2 py-0.5 rounded-full {{ $p['nivel'] === 'Inicial' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700' }} font-semibold">
-                            {{ $p['nivel'] }}
-                        </span>
-                    </td>
-                    <td class="px-4 py-2.5 text-gray-500 text-xs">{{ $p['marca'] ?? '—' }}</td>
-                    <td class="px-4 py-2.5 text-gray-500 text-xs">{{ $p['lote'] ?? '—' }}</td>
-                    <td class="px-4 py-2.5 text-center text-xs">{{ $p['cant'] }} {{ $p['unid'] }}</td>
-                    <td class="px-4 py-2.5 text-center text-xs font-bold text-red-600">
-                        {{ $p['fecha_vencimiento']->format('d/m/Y') }}
-                    </td>
-                    <td class="px-4 py-2.5 text-center">
-                        <span class="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">
-                            {{ $hoy->diffInDays($p['fecha_vencimiento']) }} días
-                        </span>
-                    </td>
-                    <td class="px-4 py-2.5 text-center">
-                        <a href="{{ $p['edit_route'] }}" class="text-xs text-gray-400 hover:text-gray-700 underline">Editar</a>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-</div>
-@endif
 
 {{-- POR VENCER --}}
 @if($porVencer->count())
@@ -229,7 +171,7 @@
 </div>
 @endif
 
-@if($vencidos->count() === 0 && $porVencer->count() === 0 && $vigentes->count() === 0)
+@if($porVencer->count() === 0 && $vigentes->count() === 0)
 <div class="text-center py-16 text-gray-400">
     <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
