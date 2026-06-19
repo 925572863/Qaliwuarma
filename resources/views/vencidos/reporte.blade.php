@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reporte de Productos Vencidos</title>
+    <title>Reporte de Stock Vigente</title>
     <script src="{{ '/js/tailwind.min.js' }}"></script>
     <style>
         body { font-family: Arial, sans-serif; font-size: 12px; color: #111; background: white; }
@@ -60,7 +60,7 @@
     @if($vencidos->count())
     <div class="mb-6">
         <div class="bg-red-700 text-white text-xs font-bold uppercase px-3 py-1.5 tracking-wide rounded-t">
-            ● Productos Vencidos ({{ $vencidos->count() }})
+            ● Stock Vigente ({{ $vencidos->count() }})
         </div>
         <table class="w-full border-collapse border border-red-300 text-xs">
             <thead>

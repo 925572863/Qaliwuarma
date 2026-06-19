@@ -1,7 +1,7 @@
 @extends('layouts.app')
-@section('title', 'Productos Vencidos')
+@section('title', 'Stock Vigente')
 @section('page-title', 'Control de Vencimientos')
-@section('breadcrumb', 'Productos Vencidos')
+@section('breadcrumb', 'Stock Vigente')
 
 @section('content')
 

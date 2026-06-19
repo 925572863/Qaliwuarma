@@ -198,7 +198,7 @@
                 </div>
             </div>
 
-            {{-- Productos Vencidos --}}
+            {{-- Stock Vigente --}}
             <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-widest mt-5 mb-2">Inventario</p>
             <a href="{{ route('vencidos.index') }}"
                class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150
@@ -207,7 +207,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
                 </svg>
-                <span>Productos Vencidos</span>
+                <span>Stock Vigente</span>
             </a>
 
         </nav>
@@ -346,5 +346,4 @@ function closeSidebar() {
 </script>
 </body>
 </html>
-
 
