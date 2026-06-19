@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'admin@qualiwuarma.com'],
             [
                 'name'     => 'Administrador',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('admin2024'),
             ]
         );
 
