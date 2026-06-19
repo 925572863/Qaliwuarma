@@ -31,6 +31,12 @@ function abrirModal(id) { document.getElementById(id).classList.remove('hidden')
 function cerrarModal(id) { document.getElementById(id).classList.add('hidden'); }
 document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ cerrarModal('modal-primaria'); cerrarModal('modal-inicial'); }});
 
+function toggleAcordeon(id) {
+    var el = document.getElementById(id);
+    var arrow = document.getElementById('arrow-' + id);
+    el.classList.toggle('hidden');
+    if (arrow) arrow.classList.toggle('rotate-180');
+}
 function cambiarTab(tab) {
     ['primaria','inicial'].forEach(function(t) {
         document.getElementById('tab-content-' + t).classList.toggle('hidden', t !== tab);
@@ -335,11 +341,13 @@ document.addEventListener('DOMContentLoaded', function(){ cambiarTab('primaria')
                             <p class="text-gray-500 text-sm max-w-xs mx-auto mt-1">Todavía no hay alumnos registrados en el nivel de {{ $nivel }}.</p>
                         </div>
                     @else
+                        @php $gi = 0; @endphp
                         <div class="space-y-4">
                             @foreach($grados as $gradoNombre => $seccionesDelGrado)
-                                <div x-data="{ openGrado: true }" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all hover:shadow-md">
+                                @php $gi++; $gradoId = 'grado-' . $nivel . '-' . $gi; $si = 0; @endphp
+                                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all hover:shadow-md">
                                     {{-- Grado Header --}}
-                                    <button @click="openGrado = !openGrado"
+                                    <button onclick="toggleAcordeon('{{ $gradoId }}')"
                                             class="w-full flex items-center justify-between px-6 py-4 {{ $nivel === 'primaria' ? 'bg-slate-800' : 'bg-amber-700' }} hover:opacity-90 transition-all focus:outline-none">
                                         <div class="flex items-center space-x-4">
                                             <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
@@ -352,22 +360,23 @@ document.addEventListener('DOMContentLoaded', function(){ cambiarTab('primaria')
                                                 <span class="text-white/60 text-[10px] font-bold uppercase">{{ count($seccionesDelGrado) }} Secciones &middot; {{ collect($seccionesDelGrado)->flatten()->count() }} Alumnos</span>
                                             </div>
                                         </div>
-                                        <svg class="w-5 h-5 text-white/50 transition-transform duration-300"
-                                             :class="openGrado ? 'rotate-180' : ''"
+                                        <svg id="arrow-{{ $gradoId }}" class="w-5 h-5 text-white/50 transition-transform duration-300 rotate-180"
                                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                         </svg>
                                     </button>
 
                                     {{-- Secciones --}}
-                                    <div x-show="openGrado" x-transition.opacity.duration.300ms class="divide-y divide-gray-50">
+                                    <div id="{{ $gradoId }}" class="divide-y divide-gray-50">
                                         @foreach($seccionesDelGrado as $carrera => $lista)
                                             @php
+                                                $si++;
+                                                $secId = 'sec-' . $nivel . '-' . $gi . '-' . $si;
                                                 $letra = trim(substr($carrera, strrpos($carrera, ' ') + 1));
                                                 $color = $coloresSecciones[$letra] ?? $coloresDefault;
                                             @endphp
-                                            <div x-data="{ openSec: true }" class="bg-white">
-                                                <button @click="openSec = !openSec"
+                                            <div class="bg-white">
+                                                <button onclick="toggleAcordeon('{{ $secId }}')"
                                                         class="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50/80 transition-colors focus:outline-none">
                                                     <div class="flex items-center space-x-4">
                                                         <div class="w-10 h-10 rounded-xl {{ $color['light'] }} flex items-center justify-center flex-shrink-0 border border-{{ str_replace('bg-', '', $color['text']) }}/10">
@@ -383,9 +392,8 @@ document.addEventListener('DOMContentLoaded', function(){ cambiarTab('primaria')
                                                             <span class="text-xl font-black {{ $color['text'] }} block leading-none">{{ $lista->count() }}</span>
                                                             <span class="text-[10px] font-bold text-gray-400 uppercase">Total</span>
                                                         </div>
-                                                        <div class="p-1.5 rounded-lg bg-gray-50 group-hover:bg-white transition-colors">
-                                                            <svg class="w-4 h-4 text-gray-400 transition-transform duration-300"
-                                                                 :class="openSec ? 'rotate-180' : ''"
+                                                        <div class="p-1.5 rounded-lg bg-gray-50 transition-colors">
+                                                            <svg id="arrow-{{ $secId }}" class="w-4 h-4 text-gray-400 transition-transform duration-300 rotate-180"
                                                                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                                             </svg>
@@ -393,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function(){ cambiarTab('primaria')
                                                     </div>
                                                 </button>
 
-                                                <div x-show="openSec" x-transition.opacity.duration.300ms class="border-t border-gray-50 bg-gray-50/30">
+                                                <div id="{{ $secId }}" class="border-t border-gray-50 bg-gray-50/30">
                                                     <div class="overflow-x-auto">
                                                         <table class="w-full text-left">
                                                             <thead>
