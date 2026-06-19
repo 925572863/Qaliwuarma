@@ -362,7 +362,7 @@
                                                 $letra = trim(substr($carrera, strrpos($carrera, ' ') + 1));
                                                 $color = $coloresSecciones[$letra] ?? $coloresDefault;
                                             @endphp
-                                            <div x-data="{ openSec: false }" class="bg-white">
+                                            <div x-data="{ openSec: true }" class="bg-white">
                                                 <button @click="openSec = !openSec"
                                                         class="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50/80 transition-colors focus:outline-none">
                                                     <div class="flex items-center space-x-4">
