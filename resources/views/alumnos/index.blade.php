@@ -26,7 +26,13 @@
     $coloresDefault = ['bg' => 'bg-slate-600','hover' => 'hover:bg-slate-700','light' => 'bg-slate-50','text' => 'text-slate-600'];
 @endphp
 
-<div x-data="{ tab: 'primaria', showImportModal: false, showImportModalPrimaria: false }">
+<script>
+function abrirModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function cerrarModal(id) { document.getElementById(id).classList.add('hidden'); }
+document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ cerrarModal('modal-primaria'); cerrarModal('modal-inicial'); }});
+</script>
+
+<div x-data="{ tab: 'primaria' }">
     {{-- Tabs + botón importar --}}
     <div class="flex items-center justify-between mb-6">
     <div class="flex items-center space-x-1 bg-gray-100 p-1 rounded-xl w-fit">
@@ -52,7 +58,7 @@
 
     {{-- Botón importar Primaria --}}
     <button x-show="tab === 'primaria'" x-cloak
-            @click="showImportModalPrimaria = true"
+            onclick="abrirModal('modal-primaria')"
             class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors shadow-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
@@ -61,7 +67,7 @@
     </button>
     {{-- Botón importar Inicial --}}
     <button x-show="tab === 'inicial'" x-cloak
-            @click="showImportModal = true"
+            onclick="abrirModal('modal-inicial')"
             class="inline-flex items-center space-x-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors shadow-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
@@ -71,23 +77,16 @@
     </div>{{-- cierra flex justify-between --}}
 
     {{-- Modal importar Primaria --}}
-    <div x-show="showImportModalPrimaria"
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-         @click.self="showImportModalPrimaria = false"
-         x-cloak>
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5" @click.stop>
+    <div id="modal-primaria"
+         class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+         onclick="if(event.target===this) cerrarModal('modal-primaria')">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5" onclick="event.stopPropagation()">
             <div class="flex items-start justify-between">
                 <div>
                     <h2 class="text-lg font-black text-gray-800">Importar Alumnos de Primaria</h2>
                     <p class="text-sm text-gray-400 mt-0.5">Sube el Excel o CSV con la lista actualizada</p>
                 </div>
-                <button @click="showImportModalPrimaria = false" class="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                <button onclick="cerrarModal('modal-primaria')" class="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
                     <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -158,7 +157,7 @@
                         </div>
                     </div>
                     <div class="flex items-center space-x-3 pt-1">
-                        <button type="button" @click="showImportModalPrimaria = false"
+                        <button type="button" onclick="cerrarModal('modal-primaria')"
                                 class="flex-1 px-4 py-2.5 text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
                             Cancelar
                         </button>
@@ -173,18 +172,11 @@
     </div>
 
     {{-- Modal de importación Inicial --}}
-    <div x-show="showImportModal"
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-         @click.self="showImportModal = false"
-         x-cloak>
+    <div id="modal-inicial"
+         class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+         onclick="if(event.target===this) cerrarModal('modal-inicial')">
 
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5" @click.stop>
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5" onclick="event.stopPropagation()">
 
             {{-- Header del modal --}}
             <div class="flex items-start justify-between">
@@ -192,7 +184,7 @@
                     <h2 class="text-lg font-black text-gray-800">Importar Alumnos de Inicial</h2>
                     <p class="text-sm text-gray-400 mt-0.5">Sube el Excel o CSV con la lista actualizada</p>
                 </div>
-                <button @click="showImportModal = false" class="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                <button onclick="cerrarModal('modal-inicial')" class="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
                     <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -288,7 +280,7 @@
 
                     {{-- Botones --}}
                     <div class="flex items-center space-x-3 pt-1">
-                        <button type="button" @click="showImportModal = false"
+                        <button type="button" onclick="cerrarModal('modal-inicial')"
                                 class="flex-1 px-4 py-2.5 text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
                             Cancelar
                         </button>
