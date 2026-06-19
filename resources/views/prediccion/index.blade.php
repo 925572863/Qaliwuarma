@@ -37,7 +37,7 @@
 @section('breadcrumb', 'Regresión lineal · Métricas MAE, RMSE, R², MAPE')
 
 @section('header-actions')
-    <div class="flex items-center space-x-2" x-data="{ modalImport: false }">
+    <div class="flex items-center space-x-2">
         {{-- Selector de nivel --}}
         <form method="GET" action="{{ route('prediccion.index') }}" class="flex items-center space-x-2">
             <select name="nivel" onchange="this.form.submit()"
@@ -47,7 +47,7 @@
         </form>
 
         {{-- Botón importar histórico --}}
-        <button @click="modalImport = true"
+        <button onclick="document.getElementById('modal-import-hist').classList.remove('hidden')"
                 class="inline-flex items-center space-x-1.5 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
@@ -64,14 +64,15 @@
         </a>
 
         {{-- Modal importar --}}
-        <div x-show="modalImport" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" x-cloak @click.self="modalImport = false">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5" @click.stop>
+        <div id="modal-import-hist" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+             onclick="if(event.target===this) document.getElementById('modal-import-hist').classList.add('hidden')">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5" onclick="event.stopPropagation()">
                 <div class="flex items-start justify-between">
                     <div>
                         <h2 class="text-lg font-bold text-gray-800">Importar Histórico de Asistencia</h2>
                         <p class="text-sm text-gray-400 mt-0.5">Sube un Excel con los datos anteriores</p>
                     </div>
-                    <button @click="modalImport = false" class="p-1.5 hover:bg-gray-100 rounded-lg">
+                    <button onclick="document.getElementById('modal-import-hist').classList.add('hidden')" class="p-1.5 hover:bg-gray-100 rounded-lg">
                         <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
@@ -112,7 +113,7 @@
                     </div>
 
                     <div class="flex gap-3 pt-1">
-                        <button type="button" @click="modalImport = false"
+                        <button type="button" onclick="document.getElementById('modal-import-hist').classList.add('hidden')"
                                 class="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
                             Cancelar
                         </button>
