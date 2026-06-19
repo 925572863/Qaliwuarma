@@ -104,6 +104,7 @@
         border-color: #3b82f6 !important;
         box-shadow: 0 0 0 3px rgba(59,130,246,.2), 0 0 12px rgba(59,130,246,.1);
         background: #1e293b !important;
+        color: #ffffff !important;
     }
     .input-wrap:focus-within svg { color: #60a5fa; transition: color .25s; }
 
