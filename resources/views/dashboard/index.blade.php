@@ -92,7 +92,7 @@
         @endif
     </div>
 
-    {{-- Inactivos --}}
+    {{-- Trasladados --}}
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex items-center space-x-4">
         <div class="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center flex-shrink-0">
             <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,7 +101,7 @@
             </svg>
         </div>
         <div>
-            <p class="text-sm text-gray-500 font-medium">Inactivos</p>
+            <p class="text-sm text-gray-500 font-medium">Trasladados</p>
             <p class="text-3xl font-bold text-gray-800 leading-tight">{{ $stats['inactivos'] }}</p>
         </div>
     </div>

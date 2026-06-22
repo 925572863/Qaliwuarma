@@ -153,7 +153,7 @@
                     <select name="estado"
                             class="w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 {{ $errors->has('estado') ? 'border-red-400' : 'border-gray-300' }}">
                         <option value="activo"   {{ old('estado', 'activo') === 'activo'   ? 'selected' : '' }}>Activo</option>
-                        <option value="inactivo" {{ old('estado') === 'inactivo' ? 'selected' : '' }}>Inactivo</option>
+                        <option value="inactivo" {{ old('estado') === 'inactivo' ? 'selected' : '' }}>Trasladado</option>
                         <option value="egresado" {{ old('estado') === 'egresado' ? 'selected' : '' }}>Egresado</option>
                         <option value="baja"     {{ old('estado') === 'baja'     ? 'selected' : '' }}>Baja</option>
                     </select>

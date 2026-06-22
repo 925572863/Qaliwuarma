@@ -72,7 +72,7 @@ class Alumno extends Model
     {
         return match ($this->estado) {
             'activo'   => 'Activo',
-            'inactivo' => 'Inactivo',
+            'inactivo' => 'Trasladado',
             'egresado' => 'Egresado',
             'baja'     => 'Baja',
             default    => ucfirst($this->estado),
