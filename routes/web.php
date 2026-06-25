@@ -9,6 +9,8 @@ use App\Http\Controllers\PrediccionController;
 use App\Http\Controllers\AporteController;
 use App\Http\Controllers\ComprasAdicionalesController;
 use App\Http\Controllers\ProductosVencidosController;
+use App\Http\Controllers\EvaluacionController;
+use App\Http\Controllers\ProrrateoInicialController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to dashboard
@@ -42,6 +44,15 @@ Route::middleware(['auth', 'throttle:120,1'])->group(function () {
         Route::get('/{inicial}/editar',   [PecosaInicialController::class, 'edit'])->name('edit');
         Route::put('/{inicial}',          [PecosaInicialController::class, 'update'])->name('update');
         Route::delete('/{inicial}',       [PecosaInicialController::class, 'destroy'])->name('destroy');
+
+        // Distribución / Prorrateo Inicial
+        Route::get('/prorrateo',                     [ProrrateoInicialController::class, 'index'])->name('prorrateo');
+        Route::post('/prorrateo',                    [ProrrateoInicialController::class, 'guardar'])->name('prorrateo.guardar');
+        Route::get('/distribuciones',                [ProrrateoInicialController::class, 'historial'])->name('distribuciones');
+        Route::get('/distribuciones/{version}',      [ProrrateoInicialController::class, 'verVersion'])->name('distribuciones.ver');
+        Route::delete('/distribuciones/{version}',   [ProrrateoInicialController::class, 'eliminarVersion'])->name('distribuciones.eliminar');
+        Route::get('/distribuciones/{version}/listado/{seccion}', [ProrrateoInicialController::class, 'listadoAula'])->name('distribuciones.listado');
+        Route::post('/distribuciones/importar',      [ProrrateoInicialController::class, 'importarExcel'])->name('distribuciones.importar')->middleware('throttle:10,1');
 
         // Lista de compras adicionales
         Route::post('/importar', [PecosaInicialController::class, 'importar'])->name('importar')->middleware('throttle:10,1');
@@ -88,6 +99,7 @@ Route::middleware(['auth', 'throttle:120,1'])->group(function () {
         Route::get('/distribuciones/{version}',                    [\App\Http\Controllers\ProrrateoController::class, 'verVersion'])->name('distribuciones.ver');
         Route::delete('/distribuciones/{version}',                 [\App\Http\Controllers\ProrrateoController::class, 'eliminarVersion'])->name('distribuciones.eliminar');
         Route::get('/distribuciones/{version}/listado/{seccion}',  [\App\Http\Controllers\ProrrateoController::class, 'listadoAula'])->name('distribuciones.listado');
+        Route::post('/distribuciones/importar',                    [\App\Http\Controllers\ProrrateoController::class, 'importarExcel'])->name('distribuciones.importar')->middleware('throttle:10,1');
         Route::post('/importar',           [PecosaPrimariaController::class, 'importar'])->name('importar')->middleware('throttle:10,1');
         Route::get('/crear',               [\App\Http\Controllers\PecosaPrimariaController::class, 'create'])->name('create');
         Route::post('/',                   [PecosaPrimariaController::class, 'store'])->name('store');
@@ -99,4 +111,10 @@ Route::middleware(['auth', 'throttle:120,1'])->group(function () {
     // Productos Vencidos
     Route::get('/vencidos', [ProductosVencidosController::class, 'index'])->name('vencidos.index');
     Route::get('/vencidos/reporte', [ProductosVencidosController::class, 'reporte'])->name('vencidos.reporte');
+
+    // Evaluación de Usabilidad
+    Route::get('/evaluacion',          [EvaluacionController::class, 'index'])->name('evaluacion.index');
+    Route::get('/evaluacion/nueva',    [EvaluacionController::class, 'create'])->name('evaluacion.create');
+    Route::post('/evaluacion',         [EvaluacionController::class, 'store'])->name('evaluacion.store');
+    Route::delete('/evaluacion/{evaluacion}', [EvaluacionController::class, 'destroy'])->name('evaluacion.destroy');
 });

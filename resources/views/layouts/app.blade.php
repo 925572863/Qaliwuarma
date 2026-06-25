@@ -128,6 +128,18 @@
                         <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('pecosa.inicial.compras*') ? 'bg-white' : 'bg-slate-400' }} flex-shrink-0"></span>
                         <span>Lista de Compras</span>
                     </a>
+                    <a href="{{ route('pecosa.inicial.prorrateo') }}"
+                       class="flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors
+                              {{ request()->routeIs('pecosa.inicial.prorrateo') ? 'bg-orange-600 text-white' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-orange-600 dark:hover:text-white' }}">
+                        <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('pecosa.inicial.prorrateo') ? 'bg-white' : 'bg-slate-400' }} flex-shrink-0"></span>
+                        <span>Nueva Distribución</span>
+                    </a>
+                    <a href="{{ route('pecosa.inicial.distribuciones') }}"
+                       class="flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors
+                              {{ request()->routeIs('pecosa.inicial.distribuciones*') ? 'bg-orange-600 text-white' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-orange-600 dark:hover:text-white' }}">
+                        <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('pecosa.inicial.distribuciones*') ? 'bg-white' : 'bg-slate-400' }} flex-shrink-0"></span>
+                        <span>Ver guardadas</span>
+                    </a>
                     <a href="{{ route('aportes.index') }}"
                        class="flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors
                               {{ request()->routeIs('aportes.*') ? 'bg-yellow-500 text-white' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-yellow-600 dark:hover:text-white' }}">
@@ -213,6 +225,18 @@
                           d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
                 </svg>
                 <span>Stock Vigente</span>
+            </a>
+
+            {{-- Evaluación --}}
+            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-widest mt-5 mb-2">Evaluación</p>
+            <a href="{{ route('evaluacion.index') }}"
+               class="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150
+                      {{ request()->routeIs('evaluacion.*') ? 'bg-purple-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-purple-600 dark:hover:text-white' }}">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 12l2 2 4-4M7 7h10M7 12h4m-4 5h10M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/>
+                </svg>
+                <span>Usabilidad</span>
             </a>
 
         </nav>
