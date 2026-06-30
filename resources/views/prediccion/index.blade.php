@@ -1,3 +1,8 @@
+@extends('layouts.app')
+@section('title', 'Módulo de Predicción')
+@section('page-title', 'Módulo de Predicción de Raciones')
+@section('breadcrumb', 'Regresión lineal · Métricas MAE, RMSE, R², MAPE')
+
 {{-- Modal detalle de aula --}}
 @section('modals')
 <div id="modal-detalle" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
@@ -30,11 +35,6 @@
     </div>
 </div>
 @endsection
-
-@extends('layouts.app')
-@section('title', 'Módulo de Predicción')
-@section('page-title', 'Módulo de Predicción de Raciones')
-@section('breadcrumb', 'Regresión lineal · Métricas MAE, RMSE, R², MAPE')
 
 @section('header-actions')
     <div class="flex items-center space-x-2">
@@ -91,23 +91,23 @@
                     @csrf
                     <input type="hidden" name="nivel" value="{{ $nivel }}">
 
-                    <div x-data="{ fileName: '' }">
+                    <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Archivo Excel / CSV</label>
-                        <div class="relative border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-blue-400 transition-colors cursor-pointer"
-                             @dragover.prevent
-                             @drop.prevent="const f=$event.dataTransfer.files[0]; if(f){fileName=f.name; $refs.fileHist.files=$event.dataTransfer.files;}">
+                        <div id="drop-hist" class="relative border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-blue-400 transition-colors cursor-pointer"
+                             ondragover="event.preventDefault()"
+                             ondrop="histDrop(event)">
                             <input type="file" name="archivo" accept=".xlsx,.xls,.csv"
+                                   id="fileHist"
                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                   x-ref="fileHist"
-                                   @change="fileName = $event.target.files[0]?.name || ''">
-                            <div x-show="!fileName">
+                                   onchange="histChange(this)">
+                            <div id="hist-placeholder">
                                 <svg class="w-8 h-8 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                 <p class="text-sm text-gray-500">Arrastra o <span class="text-blue-600 font-semibold">elige un archivo</span></p>
                                 <p class="text-xs text-gray-400 mt-1">.xlsx · .xls · .csv</p>
                             </div>
-                            <div x-show="fileName" class="flex items-center justify-center gap-2">
+                            <div id="hist-selected" class="hidden items-center justify-center gap-2">
                                 <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                <span class="text-sm font-semibold text-gray-700" x-text="fileName"></span>
+                                <span id="hist-filename" class="text-sm font-semibold text-gray-700"></span>
                             </div>
                         </div>
                     </div>
@@ -190,17 +190,28 @@
     </div>
 
     {{-- Análisis IA automático --}}
-    @if(!empty($analisisIA))
+    @if(!empty($analisisIA) && str_starts_with($analisisIA, '__ERROR__'))
+    <div class="mt-4 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs">
+        Error al conectar con la IA: {{ substr($analisisIA, 9) }}
+    </div>
+    @elseif(!empty($analisisIA))
     @php
-        // Separar secciones por número + punto
-        preg_match_all('/(\d+\.\s[^\n:]+[:])([^1-9]*)/u', $analisisIA, $matches, PREG_SET_ORDER);
+        // Parsear secciones por línea que empiece con dígito + punto
+        $lineas = explode("\n", $analisisIA);
         $secciones = [];
-        foreach ($matches as $m) {
-            $secciones[] = [
-                'titulo' => trim(rtrim($m[1], ':')),
-                'texto'  => trim($m[2]),
-            ];
+        $secActual = null;
+        foreach ($lineas as $linea) {
+            if (preg_match('/^(\d+)\.\s+(.+)/', trim($linea), $m)) {
+                if ($secActual !== null) $secciones[] = $secActual;
+                $secActual = ['num' => (int)$m[1], 'titulo' => trim($m[2], ':'), 'texto' => ''];
+            } elseif ($secActual !== null) {
+                $secActual['texto'] .= ($secActual['texto'] ? "\n" : '') . $linea;
+            }
         }
+        if ($secActual !== null) $secciones[] = $secActual;
+        foreach ($secciones as &$s) { $s['texto'] = trim($s['texto']); }
+        unset($s);
+
         $iconos = ['📊','🍽️','📅','🥘','✅'];
         $colores = [
             'bg-blue-50 border-blue-200 text-blue-800',
@@ -236,7 +247,7 @@
                     <p class="text-xs font-bold uppercase tracking-wide mb-2 opacity-70">
                         {{ $iconos[$i] ?? '•' }} {{ $sec['titulo'] }}
                     </p>
-                    <p class="text-sm leading-relaxed">{{ $sec['texto'] }}</p>
+                    <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ $sec['texto'] }}</p>
                 </div>
                 @endforeach
             @else
@@ -454,43 +465,90 @@
 
     @endif
 
-    {{-- Ingredientes necesarios (solo inicial) --}}
+    {{-- Ingredientes necesarios según raciones predichas --}}
     @if($nivel === 'inicial' && count($ingredientes ?? []) > 0)
+    @php $tieneCalorias = isset($ingredientes[0]['items'][0]['calorias_total']) && $ingredientes[0]['items'][0]['calorias_total'] !== null; @endphp
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 bg-purple-50 flex items-center justify-between">
             <div>
-                <h3 class="text-sm font-semibold text-purple-800 uppercase tracking-wide">Ingredientes Necesarios — IA</h3>
-                <p class="text-xs text-purple-500 mt-0.5">Calculado según raciones predichas × gramos por ración</p>
+                <h3 class="text-sm font-semibold text-purple-800 uppercase tracking-wide">
+                    Ingredientes necesarios por día predicho
+                </h3>
+                <p class="text-xs text-purple-500 mt-0.5">
+                    Calculado: gramos por ración × raciones predichas
+                    @if(!$tieneCalorias)
+                        · <a href="{{ route('pecosa.inicial.index') }}" class="underline">Analiza en PECOSA para ver calorías</a>
+                    @endif
+                </p>
             </div>
-            <a href="{{ route('pecosa.inicial.index') }}"
-               class="text-xs text-purple-600 hover:underline">Actualizar análisis →</a>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm border-collapse">
+            <table class="w-full text-xs border-collapse">
                 <thead>
-                    <tr class="bg-purple-600 text-white text-xs uppercase">
-                        <th class="px-4 py-2 text-left border border-purple-500">Ingrediente</th>
+                    <tr class="bg-purple-700 text-white uppercase text-[10px]">
+                        <th class="px-4 py-2 text-left border border-purple-600" style="min-width:160px">Ingrediente</th>
+                        <th class="px-3 py-2 text-center border border-purple-600">g/ración</th>
                         @foreach($ingredientes as $dia)
-                            <th class="px-4 py-2 text-center border border-purple-500 whitespace-nowrap">
+                            <th class="px-4 py-2 text-center border border-purple-600 whitespace-nowrap">
                                 {{ $dia['fecha'] }}<br>
-                                <span class="font-normal text-purple-200">{{ $dia['raciones'] }} rac.</span>
+                                <span class="font-normal text-purple-200 text-[9px]">{{ $dia['raciones'] }} raciones</span>
                             </th>
                         @endforeach
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($ingredientes[0]['items'] as $idx => $ing)
-                    <tr class="border-b border-gray-100 hover:bg-purple-50">
-                        <td class="px-4 py-2 font-medium text-gray-800 border border-gray-200 uppercase text-xs">{{ $ing['producto'] }}</td>
+                    <tr class="{{ $idx % 2 === 0 ? 'bg-white' : 'bg-purple-50' }} hover:bg-purple-100 transition-colors">
+                        <td class="px-4 py-2 font-semibold text-gray-800 border border-gray-200 uppercase text-[10px]">
+                            {{ $ing['producto'] }}
+                        </td>
+                        <td class="px-3 py-2 text-center border border-gray-200 text-purple-700 font-bold">
+                            {{ number_format($ing['gramos_racion'], 0) }}g
+                        </td>
                         @foreach($ingredientes as $dia)
-                            <td class="px-4 py-2 text-center border border-gray-200">
-                                <span class="font-semibold text-purple-700">{{ $dia['items'][$idx]['kg_total'] }} kg</span>
-                                <span class="block text-xs text-gray-400">{{ number_format($dia['items'][$idx]['calorias_total']) }} kcal</span>
-                            </td>
+                        @php $item = $dia['items'][$idx]; @endphp
+                        <td class="px-4 py-2 text-center border border-gray-200">
+                            <span class="font-bold text-purple-800 text-xs block">
+                                {{ number_format($item['gramos_total']) }}g
+                                <span class="text-gray-500 font-normal">({{ $item['kg_total'] }} kg)</span>
+                            </span>
+                            @if($item['calorias_total'] !== null)
+                                <span class="text-[9px] text-orange-600 font-semibold block mt-0.5">
+                                    {{ number_format($item['calorias_total']) }} kcal
+                                </span>
+                                @if($item['proteinas_total'] !== null && $item['proteinas_total'] > 0)
+                                <span class="text-[9px] text-green-600 block">
+                                    prot: {{ $item['proteinas_total'] }}g
+                                </span>
+                                @endif
+                            @else
+                                <span class="text-[9px] text-gray-300 block mt-0.5">sin kcal</span>
+                            @endif
+                        </td>
                         @endforeach
                     </tr>
                     @endforeach
                 </tbody>
+                <tfoot>
+                    <tr class="bg-purple-700 text-white font-bold text-[10px]">
+                        <td colspan="2" class="px-4 py-2 border border-purple-600 uppercase">
+                            Total por día
+                        </td>
+                        @foreach($ingredientes as $dia)
+                        @php
+                            $totalG    = array_sum(array_column($dia['items'], 'gramos_total'));
+                            $totalKg   = round($totalG / 1000, 2);
+                            $totalKcal = array_sum(array_filter(array_column($dia['items'], 'calorias_total')));
+                        @endphp
+                        <td class="px-4 py-2 text-center border border-purple-600">
+                            <span class="block">{{ number_format($totalG) }}g ({{ $totalKg }} kg)</span>
+                            @if($totalKcal > 0)
+                                <span class="text-purple-200 text-[9px]">{{ number_format($totalKcal) }} kcal total</span>
+                            @endif
+                        </td>
+                        @endforeach
+                    </tr>
+                </tfoot>
             </table>
         </div>
     </div>
@@ -803,6 +861,25 @@ function analizarConIA() {
         resultado.textContent = '❌ Error de conexión.';
         resultado.classList.remove('hidden');
     });
+}
+
+function histChange(input) {
+    const name = input.files[0]?.name || '';
+    document.getElementById('hist-placeholder').classList.toggle('hidden', !!name);
+    const sel = document.getElementById('hist-selected');
+    sel.classList.toggle('hidden', !name);
+    sel.classList.toggle('flex', !!name);
+    document.getElementById('hist-filename').textContent = name;
+}
+
+function histDrop(event) {
+    const f = event.dataTransfer.files[0];
+    if (!f) return;
+    const input = document.getElementById('fileHist');
+    const dt = new DataTransfer();
+    dt.items.add(f);
+    input.files = dt.files;
+    histChange(input);
 }
 </script>
 @endpush

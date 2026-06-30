@@ -161,15 +161,50 @@ class ProrrateoController extends Controller
         $version = DB::table('prorrateo_versiones')->find($id);
         abort_if(!$version, 404);
 
-        $secciones = $this->getSecciones();
-        $productos = $this->getProductos();
+        $registros = DB::table('prorrateo_primaria')->where('version_id', $id)->get();
 
-        $guardado = DB::table('prorrateo_primaria')
-            ->where('version_id', $id)
-            ->get()->groupBy('seccion');
+        // Detectar si es una distribución importada (sin FK a pecosa_primaria)
+        $esImportada = $registros->whereNull('pecosa_primaria_id')->isNotEmpty();
 
-        [$data, $totalesProductos, $totalGeneral, $totalAlumnos] =
-            $this->construirTabla($secciones, $productos, $guardado);
+        if ($esImportada) {
+            // Construir tabla libre desde producto_nombre
+            $productos = $registros->pluck('producto_nombre')->unique()->values()
+                ->map(fn($n) => ['id' => $n, 'nombre' => $n, 'unid' => '', 'presentacion' => '1', 'cant_total' => 0])
+                ->toArray();
+
+            $secciones = $registros->groupBy('seccion')->map(fn($rows) => [
+                'nombre'  => $rows->first()->seccion,
+                'alumnos' => (int) $rows->first()->alumnos,
+            ])->values()->toArray();
+
+            $guardadoMap = $registros->groupBy('seccion');
+
+            $data = [];
+            $totalesProductos = array_fill(0, count($productos), 0);
+            $totalGeneral = 0;
+            $totalAlumnos = array_sum(array_column($secciones, 'alumnos'));
+
+            foreach ($secciones as $sec) {
+                $fila = ['seccion' => $sec['nombre'], 'alumnos' => $sec['alumnos'], 'items' => [], 'total' => 0];
+                $rows = $guardadoMap[$sec['nombre']] ?? collect();
+                foreach ($productos as $idx => $prod) {
+                    $reg  = $rows->firstWhere('producto_nombre', $prod['id']);
+                    $cant = $reg ? (int) $reg->cantidad : 0;
+                    $fila['items'][] = $cant;
+                    $fila['total'] += $cant;
+                    $totalesProductos[$idx] += $cant;
+                }
+                $totalGeneral += $fila['total'];
+                $data[] = $fila;
+            }
+
+        } else {
+            $secciones = $this->getSecciones();
+            $productos = $this->getProductos();
+            $guardado  = $registros->groupBy('seccion');
+            [$data, $totalesProductos, $totalGeneral, $totalAlumnos] =
+                $this->construirTabla($secciones, $productos, $guardado);
+        }
 
         return view('pecosa.primaria.version', compact(
             'version', 'data', 'productos', 'totalesProductos', 'totalGeneral', 'totalAlumnos'
@@ -182,6 +217,107 @@ class ProrrateoController extends Controller
 
         return redirect()->route('pecosa.primaria.distribuciones')
             ->with('success', 'Distribución eliminada.');
+    }
+
+    public function importarExcel(Request $request)
+    {
+        $request->validate([
+            'archivo' => 'required|file|mimes:xlsx,xls|max:5120',
+            'nombre'  => 'nullable|string|max:200',
+        ]);
+
+        try {
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($request->file('archivo')->getPathname());
+            $hoja = $spreadsheet->getActiveSheet();
+            $filas = $hoja->toArray(null, true, true, false);
+
+            if (count($filas) < 2) {
+                return back()->with('error', 'El archivo no tiene datos suficientes.');
+            }
+
+            // Fila 0: encabezados → [Sección, Alumnos, PROD1, PROD2, ...]
+            $encabezados = array_map(fn($v) => strtoupper(trim((string) $v)), $filas[0]);
+
+            // Detectar columnas de sección y alumnos (por defecto col 0 y 1)
+            $colSeccion = 0;
+            $colAlumnos = 1;
+            foreach ($encabezados as $i => $enc) {
+                if (str_contains($enc, 'SECCI') || str_contains($enc, 'AULA') || str_contains($enc, 'GRADO')) $colSeccion = $i;
+                if (str_contains($enc, 'ALUMNO') || str_contains($enc, 'TOTAL')) $colAlumnos = $i;
+            }
+
+            // Columnas de productos: todo lo que no sea sección/alumnos
+            $colProductos = []; // índice => nombre del producto
+            for ($i = 0; $i < count($encabezados); $i++) {
+                if ($i === $colSeccion || $i === $colAlumnos) continue;
+                $nombre = $encabezados[$i];
+                if ($nombre === '' || $nombre === null) continue;
+                $colProductos[$i] = $nombre;
+            }
+
+            if (empty($colProductos)) {
+                return back()->with('error', 'No se encontraron columnas de productos en el archivo.');
+            }
+
+            $inserts = [];
+            $totalAlumnos  = 0;
+            $totalUnidades = 0;
+            $seccionesVistas = [];
+            $now = now();
+
+            foreach (array_slice($filas, 1) as $fila) {
+                $seccion = trim((string)($fila[$colSeccion] ?? ''));
+                $alumnos = (int)($fila[$colAlumnos] ?? 0);
+                if ($seccion === '') continue;
+
+                if (!in_array($seccion, $seccionesVistas)) {
+                    $totalAlumnos += $alumnos;
+                    $seccionesVistas[] = $seccion;
+                }
+
+                foreach ($colProductos as $col => $nombreProducto) {
+                    $cantidad = max(0, (int) str_replace([',', ' '], ['', ''], (string)($fila[$col] ?? 0)));
+                    $totalUnidades += $cantidad;
+                    $inserts[] = [
+                        'seccion'            => $seccion,
+                        'alumnos'            => $alumnos,
+                        'producto_nombre'    => $nombreProducto,
+                        'producto_unidad'    => null,
+                        'pecosa_primaria_id' => null,
+                        'cantidad'           => $cantidad,
+                        'created_at'         => $now,
+                        'updated_at'         => $now,
+                    ];
+                }
+            }
+
+            if (empty($inserts)) {
+                return back()->with('error', 'No se encontraron filas de secciones válidas en el archivo.');
+            }
+
+            $versionId = DB::table('prorrateo_versiones')->insertGetId([
+                'nombre'         => $request->input('nombre') ?: 'Importado ' . now()->format('d/m/Y H:i'),
+                'total_alumnos'  => $totalAlumnos,
+                'total_unidades' => $totalUnidades,
+                'created_at'     => $now,
+                'updated_at'     => $now,
+            ]);
+
+            foreach ($inserts as &$row) {
+                $row['version_id'] = $versionId;
+            }
+
+            foreach (array_chunk($inserts, 200) as $chunk) {
+                DB::table('prorrateo_primaria')->insert($chunk);
+            }
+
+            $numSecciones = count($seccionesVistas);
+            return redirect()->route('pecosa.primaria.distribuciones')
+                ->with('success', "Distribución importada: {$numSecciones} sección(es), " . count($colProductos) . " producto(s), {$totalUnidades} unidades en total.");
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error al leer el archivo: ' . $e->getMessage());
+        }
     }
 
     public function listadoAula($versionId, $seccion)

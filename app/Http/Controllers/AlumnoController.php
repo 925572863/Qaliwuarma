@@ -515,6 +515,12 @@ class AlumnoController extends Controller
             if ($seccion === '') $seccion = $seccionActual;
             if ($seccion === '') continue;
 
+            // Extraer grado numérico de la sección (ej: "3° A" → 3, "2° B" → 2)
+            $gradoNum = 1;
+            if (preg_match('/^(\d+)/', $seccion, $gm)) {
+                $gradoNum = (int) $gm[1];
+            }
+
             $result['secciones'][$seccion] = true;
             $result['alumnos'][] = [
                 'nivel'             => 'primaria',
@@ -526,7 +532,7 @@ class AlumnoController extends Controller
                 'genero'            => $this->parseGenero($colSex !== null ? ($row[$colSex] ?? null) : null),
                 'fecha_nacimiento'  => $this->parseFecha($colFec !== null ? ($row[$colFec] ?? null) : null),
                 'carrera'           => $seccion,
-                'semestre'          => 1,
+                'semestre'          => $gradoNum,
                 'fecha_inscripcion' => now()->toDateString(),
                 'estado'            => 'activo',
             ];

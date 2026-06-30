@@ -81,33 +81,36 @@ class PrediccionController extends Controller
         // Histórico para regresión lineal — debe ir de más antiguo a más reciente
         $historico = $porFecha->sortBy('fecha')->values()->toArray();
 
-        // Regresión lineal
-        $puntos = [];
+        // Regresión lineal mejorada
+        $puntosRaw = [];
         foreach (array_values($historico) as $i => $r) {
             $raciones = is_array($r) ? ($r['raciones'] ?? 0) : 0;
-            $puntos[] = ['x' => $i, 'y' => (float) $raciones];
+            $puntosRaw[] = ['x' => $i, 'y' => (float) $raciones];
         }
+        // Filtrar outliers antes de entrenar
+        $puntos = $this->filtrarOutliers($puntosRaw);
+
         $regresion = $this->linearRegression($puntos);
         $m = is_array($regresion[0]) ? 0.0 : (float) $regresion[0];
         $b = is_array($regresion[1]) ? 0.0 : (float) $regresion[1];
 
-        // Predicción próximos 7 días
+        // Predicción próximos días hábiles (combinada: regresión + MA)
         $n = count($puntos);
         $predicciones = [];
-        for ($i = 1; $i <= 14 && count($predicciones) < 5; $i++) {
+        for ($i = 0; $i <= 14 && count($predicciones) < 5; $i++) {
             $fecha    = now()->addDays($i);
             $diaSemana = $fecha->dayOfWeek;
             if ($diaSemana === 0 || $diaSemana === 6) continue;
 
-            $pred = round(max(0, $m * ($n + $i - 1) + $b));
+            $pred = round($this->predecir($puntos, $n + $i, $m, $b));
             $predicciones[] = [
-                'fecha'            => $fecha->format('Y-m-d'),
-                'fecha_legible'    => ucfirst($fecha->locale('es')->isoFormat('dddd D/MM')),
+                'fecha'              => $fecha->format('Y-m-d'),
+                'fecha_legible'      => ucfirst($fecha->locale('es')->isoFormat('dddd D/MM')),
                 'raciones_predichas' => $pred,
             ];
         }
 
-        // Métricas
+        // Métricas (sobre datos sin outliers)
         $metricas = $this->calcularMetricas($puntos, $m, $b);
 
         // Últimos 15 registros individuales para tabla
@@ -143,18 +146,27 @@ class PrediccionController extends Controller
         $fechasOrdenadas = array_keys($fechasConAulas);
         sort($fechasOrdenadas);
 
+        // Análisis IA — cargar receta de sesión antes de calcular ingredientes
+        $recetaIA = session("receta_ia_{$nivel}", '');
+
         // Ingredientes necesarios según predicción (solo para inicial)
         $ingredientes = [];
         if ($nivel === 'inicial' && count($predicciones) > 0) {
             $nutricion = RecetaNutricional::all();
+
             if ($nutricion->isNotEmpty()) {
+                // Fuente 1: RecetaNutricional (análisis PECOSA con calorías reales)
                 foreach ($predicciones as $pred) {
                     $raciones = $pred['raciones_predichas'];
                     $items = $nutricion->map(fn($n) => [
-                        'producto'      => $n->producto,
-                        'gramos_total'  => round($n->gramos_racion * $raciones),
-                        'kg_total'      => round(($n->gramos_racion * $raciones) / 1000, 2),
-                        'calorias_total'=> round($n->calorias_racion * $raciones),
+                        'producto'       => $n->producto,
+                        'gramos_racion'  => $n->gramos_racion,
+                        'gramos_total'   => round($n->gramos_racion * $raciones),
+                        'kg_total'       => round(($n->gramos_racion * $raciones) / 1000, 3),
+                        'calorias_racion'=> $n->calorias_racion,
+                        'calorias_total' => round($n->calorias_racion * $raciones),
+                        'proteinas_total'=> round(($n->proteinas_racion ?? 0) * $raciones, 1),
+                        'fuente'         => 'bd',
                     ])->values()->toArray();
                     $ingredientes[] = [
                         'fecha'   => $pred['fecha_legible'],
@@ -162,15 +174,63 @@ class PrediccionController extends Controller
                         'items'   => $items,
                     ];
                 }
+            } elseif (!empty($recetaIA)) {
+                // Fuente 2: Parsear texto de receta (ej: "arroz 130g, aceite 6g")
+                preg_match_all(
+                    '/([a-záéíóúñü][a-záéíóúñü\s\/]{1,35}?)\s+(\d+(?:[.,]\d+)?)\s*(g|gr|gramos|ml|cc|kg|kilo|kilos)\b/ui',
+                    $recetaIA,
+                    $matches,
+                    PREG_SET_ORDER
+                );
+
+                if (!empty($matches)) {
+                    foreach ($predicciones as $pred) {
+                        $raciones = $pred['raciones_predichas'];
+                        $items = [];
+                        foreach ($matches as $m) {
+                            $nombre   = ucfirst(trim($m[1]));
+                            $cantidad = (float) str_replace(',', '.', $m[2]);
+                            $unidad   = strtolower($m[3]);
+
+                            // Normalizar a gramos
+                            if (in_array($unidad, ['kg', 'kilo', 'kilos'])) {
+                                $gramosPorRacion = $cantidad * 1000;
+                            } else {
+                                $gramosPorRacion = $cantidad;
+                            }
+
+                            $gramosTotal = round($gramosPorRacion * $raciones);
+                            $kgTotal     = round($gramosTotal / 1000, 3);
+
+                            $items[] = [
+                                'producto'       => $nombre,
+                                'gramos_racion'  => $gramosPorRacion,
+                                'gramos_total'   => $gramosTotal,
+                                'kg_total'       => $kgTotal,
+                                'calorias_racion'=> null,
+                                'calorias_total' => null,
+                                'proteinas_total'=> null,
+                                'fuente'         => 'texto',
+                            ];
+                        }
+                        if (!empty($items)) {
+                            $ingredientes[] = [
+                                'fecha'   => $pred['fecha_legible'],
+                                'raciones'=> $raciones,
+                                'items'   => $items,
+                            ];
+                        }
+                    }
+                }
             }
         }
 
         // Análisis IA automático — caché se invalida cuando hay nuevo registro
-        $recetaIA   = session("receta_ia_{$nivel}", '');
         $analisisIA = null;
         if (count($historico) >= 2 && count($predicciones) > 0) {
-            $ultimoRegistro = RegistroAsistencia::where('nivel', $nivel)->max('updated_at');
-            $hashActual = md5($ultimoRegistro . count($historico) . $recetaIA);
+            $ultimoRegistro  = RegistroAsistencia::where('nivel', $nivel)->max('updated_at');
+            $ultimaRecetaNut = RecetaNutricional::max('updated_at');
+            $hashActual = md5($ultimoRegistro . count($historico) . $recetaIA . $ultimaRecetaNut);
 
             // Buscar análisis guardado en BD
             $guardado = \Illuminate\Support\Facades\DB::table('ia_analisis')
@@ -187,50 +247,58 @@ class PrediccionController extends Controller
                     $promedio   = round(array_sum(array_column($historico, 'raciones')) / $n);
                     $tendencia  = $m > 0.5 ? 'creciente' : ($m < -0.5 ? 'decreciente' : 'estable');
                     $nivelTexto = $nivel === 'inicial' ? 'nivel inicial' : 'nivel primaria';
-                    // Buscar el lunes más próximo con datos reales o usar predicción
-                    $proximoLunes = collect($historico)
-                        ->filter(fn($r) => \Carbon\Carbon::parse($r['fecha'])->dayOfWeek === 1)
-                        ->sortByDesc('fecha')
-                        ->first();
 
-                    if ($proximoLunes) {
-                        // Usar asistencia REAL del último lunes registrado
-                        $fechaLunes   = \Carbon\Carbon::parse($proximoLunes['fecha'])->locale('es')->isoFormat('dddd D/MM');
-                        $racionesReal = $proximoLunes['raciones'];
-                        $lista = "- {$fechaLunes}: {$racionesReal} raciones (DATO REAL REGISTRADO)";
-                        $racionesParaReceta = $racionesReal;
-                    } else {
-                        // Sin lunes real, usar predicción
-                        $soloLunes  = collect($predicciones)->filter(fn($p) => \Carbon\Carbon::parse($p['fecha'])->dayOfWeek === 1)->first();
-                        $lista      = $soloLunes ? "- {$soloLunes['fecha_legible']}: {$soloLunes['raciones_predichas']} raciones (predicción)" : 'Sin datos disponibles';
-                        $racionesParaReceta = $soloLunes['raciones_predichas'] ?? $promedio;
-                    }
+                    // Solo el primer día hábil próximo
+                    $proximoDia = $predicciones[0] ?? null;
+                    $listaPred = $proximoDia
+                        ? "- {$proximoDia['fecha_legible']}: {$proximoDia['raciones_predichas']} alumnos presentes"
+                        : '(sin predicción disponible)';
 
-                    // Receta escrita por el usuario
-                    $seccionReceta = '';
-                    if (!empty($recetaIA)) {
-                        $seccionReceta = "\nRECETA DEL DÍA (por ración):\n{$recetaIA}\n\nCalcula EXACTAMENTE para {$racionesParaReceta} raciones:\n- Cantidad total de cada ingrediente: gramos por ración × {$racionesParaReceta} raciones (convierte a kg)\n- Calorías totales: calorías por ración × {$racionesParaReceta}\nUSA SOLO {$racionesParaReceta} COMO NÚMERO DE RACIONES, no inventes otro número.";
+                    // Últimos 5 registros reales con presentes
+                    $ultimosReales = collect($historico)->sortByDesc('fecha')->take(5)->map(fn($r) =>
+                        "- " . \Carbon\Carbon::parse($r['fecha'])->locale('es')->isoFormat('ddd D/MM') .
+                        ": {$r['presentes']} presentes / {$r['raciones']} raciones"
+                    )->join("\n");
+
+                    // Solo mostrar ingredientes del día más próximo (hoy/mañana)
+                    $seccionAlimentos = '';
+                    if (!empty($ingredientes)) {
+                        $dia = $ingredientes[0]; // solo el primer día
+                        $linea = "  {$dia['fecha']} ({$dia['raciones']} alumnos):";
+                        foreach ($dia['items'] as $item) {
+                            if ($item['gramos_racion'] <= 0) continue; // omitir ingredientes con 0g
+                            $kcalTexto = $item['calorias_total'] !== null
+                                ? " · {$item['calorias_total']} kcal"
+                                : '';
+                            $linea .= "\n    · {$item['producto']}: {$item['gramos_racion']}g/ración → {$item['gramos_total']}g total ({$item['kg_total']} kg){$kcalTexto}";
+                        }
+                        $seccionAlimentos = "\nALIMENTOS PARA EL DÍA MÁS PRÓXIMO (gramos por ración × alumnos):\n{$linea}\n\nUSA EXACTAMENTE estos números en la sección 4. No inventes otros.";
+                    } elseif (!empty($recetaIA)) {
+                        $seccionAlimentos = "\nRECETA (sin calcular aún): {$recetaIA}\n(No hay cálculo disponible, menciona que falta configurar la receta en PECOSA.)";
                     } else {
-                        $seccionReceta = "\n(No se ha registrado receta. Omite la sección de alimentos y calorías.)";
+                        $seccionAlimentos = "\n(No hay receta configurada. En la sección 4 indica que deben registrar la receta del día.)";
                     }
 
                     $prompt = <<<PROMPT
-Eres un asistente del Comité de Alimentación Escolar (CAE) del programa Qali Warma en Perú. Habla de forma simple y práctica, como si le explicaras a la cocinera o responsable del comedor escolar.
+Eres un asistente del Comité de Alimentación Escolar (CAE) del programa Qali Warma en Perú. Habla de forma simple y directa, como si le explicaras a la cocinera o responsable del comedor escolar.
 
-DATOS DEL MODELO ({$nivelTexto}):
-- Días históricos: {$n} · Promedio: {$promedio} raciones/día · Tendencia: {$tendencia}
-- Error promedio: {$metricas['mae']} raciones ({$metricas['mape']}%) · Precisión R²: {$metricas['r2']}
+MODELO DE PREDICCIÓN ({$nivelTexto}):
+- Días históricos: {$n} · Promedio: {$promedio} alumnos/día · Tendencia: {$tendencia}
+- Error promedio del modelo: {$metricas['mae']} alumnos ({$metricas['mape']}%) · Precisión R²: {$metricas['r2']}
 
-PREDICCIONES PRÓXIMOS DÍAS:
-{$lista}
-{$seccionReceta}
+ASISTENCIA REAL — ÚLTIMOS DÍAS:
+{$ultimosReales}
 
-Responde exactamente con estos 5 títulos. Máximo 3 oraciones por sección. Texto plano, sin markdown, sin asteriscos:
+PREDICCIÓN PRÓXIMOS DÍAS HÁBILES:
+{$listaPred}
+{$seccionAlimentos}
+
+Responde EXACTAMENTE con estos 5 títulos numerados. Máximo 3 oraciones por sección. Sin markdown, sin asteriscos, solo texto plano:
 
 1. ¿Qué tan confiable es el modelo?
-2. ¿Cuántas raciones preparar por día?
-3. ¿Hay días con más o menos alumnos?
-4. ¿Qué alimentos preparar y cuántas calorías tiene cada día?
+2. ¿Cuántos alumnos se esperan mañana y cuántas raciones preparar?
+3. ¿Hay días con más o menos asistencia últimamente?
+4. ¿Qué alimentos preparar mañana y en qué cantidad? (copia exactamente los gramos y kg del cálculo de arriba, solo los ingredientes con cantidad mayor a 0)
 5. Recomendación final para el CAE
 PROMPT;
 
@@ -240,15 +308,20 @@ PROMPT;
                     ])->post('https://api.groq.com/openai/v1/chat/completions', [
                         'model'       => 'llama-3.1-8b-instant',
                         'messages'    => [['role' => 'user', 'content' => $prompt]],
-                        'temperature' => 0.3,
-                        'max_tokens'  => 700,
+                        'temperature' => 0.2,
+                        'max_tokens'  => 1500,
                     ]);
 
                     if ($response->successful()) {
                         return trim($response->json('choices.0.message.content', ''));
                     }
-                } catch (\Exception $e) {}
-                return null;
+                    // API respondió con error
+                    \Illuminate\Support\Facades\Log::error('Groq API error: ' . $response->body());
+                    return '__ERROR__: ' . $response->status() . ' - ' . substr($response->body(), 0, 200);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Groq exception: ' . $e->getMessage());
+                    return '__ERROR__: ' . $e->getMessage();
+                }
             })();
 
             // Guardar en BD si se generó correctamente
@@ -287,16 +360,17 @@ PROMPT;
             ->map(fn($g) => ['fecha' => $g->first()->fecha->toDateString(), 'raciones' => $g->sum('raciones')])
             ->values()->toArray();
 
-        $puntos = array_map(fn($r, $i) => ['x' => $i, 'y' => (float)$r['raciones']], $historico, array_keys($historico));
+        $puntosRaw = array_map(fn($r, $i) => ['x' => $i, 'y' => (float)$r['raciones']], $historico, array_keys($historico));
+        $puntos = $this->filtrarOutliers($puntosRaw);
         [$m, $b] = $this->linearRegression($puntos);
         $n = count($puntos);
         $predicciones = [];
-        for ($i = 1; $i <= 14 && count($predicciones) < 5; $i++) {
+        for ($i = 0; $i <= 14 && count($predicciones) < 5; $i++) {
             $fecha = now()->addDays($i);
             if (in_array($fecha->dayOfWeek, [0, 6])) continue;
             $predicciones[] = [
                 'fecha'   => $fecha->locale('es')->isoFormat('dddd D/MM'),
-                'raciones'=> round(max(0, $m * ($n + $i - 1) + $b)),
+                'raciones'=> round($this->predecir($puntos, $n + $i, $m, $b)),
             ];
         }
 
@@ -744,28 +818,71 @@ PROMPT;
             ->with('success', 'Registro eliminado.');
     }
 
-    // ── Regresión lineal (mínimos cuadrados) ─────────────────────────────
+    // ── Filtrar outliers por Z-score (excluye días aberrantes) ───────────
+    private function filtrarOutliers(array $puntos, float $umbral = 2.0): array
+    {
+        $n = count($puntos);
+        if ($n < 4) return $puntos;
+
+        $ys   = array_column($puntos, 'y');
+        $mean = array_sum($ys) / $n;
+        $std  = sqrt(array_sum(array_map(fn($y) => ($y - $mean) ** 2, $ys)) / $n);
+
+        if ($std < 1) return $puntos;
+
+        $filtrados = array_values(array_filter($puntos, fn($p) => abs($p['y'] - $mean) / $std <= $umbral));
+
+        // Reindexar x para que sea continuo
+        foreach ($filtrados as $i => &$p) { $p['x'] = $i; }
+        unset($p);
+
+        return count($filtrados) >= 3 ? $filtrados : $puntos;
+    }
+
+    // ── Regresión lineal ponderada (días recientes pesan más) ─────────────
     private function linearRegression(array $puntos): array
     {
         $n = count($puntos);
         if ($n === 0) return [0, 0];
         if ($n === 1) return [0, $puntos[0]['y']];
 
-        $sumX = $sumY = $sumXY = $sumX2 = 0;
-        foreach ($puntos as $p) {
-            $sumX  += $p['x'];
-            $sumY  += $p['y'];
-            $sumXY += $p['x'] * $p['y'];
-            $sumX2 += $p['x'] ** 2;
+        // Peso exponencial: el último día tiene peso 1, el primero tiene peso e^(-decay*(n-1))
+        $decay = 0.04;
+        $sumW = $sumWX = $sumWY = $sumWXY = $sumWX2 = 0;
+
+        foreach ($puntos as $i => $p) {
+            $w      = exp($decay * ($i - ($n - 1)) * -1 * -1); // más reciente = mayor peso
+            $w      = exp(-$decay * ($n - 1 - $i));
+            $sumW   += $w;
+            $sumWX  += $w * $p['x'];
+            $sumWY  += $w * $p['y'];
+            $sumWXY += $w * $p['x'] * $p['y'];
+            $sumWX2 += $w * $p['x'] ** 2;
         }
 
-        $denom = $n * $sumX2 - $sumX ** 2;
-        if ($denom == 0) return [0, $sumY / $n];
+        $denom = $sumW * $sumWX2 - $sumWX ** 2;
+        if (abs($denom) < 1e-10) return [0, $sumWY / $sumW];
 
-        $m = ($n * $sumXY - $sumX * $sumY) / $denom;
-        $b = ($sumY - $m * $sumX) / $n;
+        $m = ($sumW * $sumWXY - $sumWX * $sumWY) / $denom;
+        $b = ($sumWY - $m * $sumWX) / $sumW;
 
         return [$m, $b];
+    }
+
+    // ── Predicción combinada: regresión + promedio móvil reciente ─────────
+    private function predecir(array $puntos, int $xFuturo, float $m, float $b): float
+    {
+        $pred = $m * $xFuturo + $b;
+
+        // Promedio de los últimos 10 días como ancla
+        $ultimos = array_slice($puntos, -10);
+        if (count($ultimos) >= 3) {
+            $ma = array_sum(array_column($ultimos, 'y')) / count($ultimos);
+            // Mezcla 60% regresión + 40% promedio móvil
+            $pred = 0.6 * $pred + 0.4 * $ma;
+        }
+
+        return max(0, $pred);
     }
 
     // ── Métricas de evaluación ────────────────────────────────────────────
@@ -776,12 +893,17 @@ PROMPT;
             return ['mae' => 0, 'rmse' => 0, 'r2' => 0, 'mape' => 0, 'suficientes' => false, 'n' => $n];
         }
 
-        $actuals   = array_column($puntos, 'y');
+        $actuals    = array_column($puntos, 'y');
         $meanActual = array_sum($actuals) / $n;
         $mae = $rmse = $mape = $ssRes = $ssTot = $mapeCount = 0;
 
         foreach ($puntos as $i => $p) {
-            $pred  = $m * $p['x'] + $b;
+            // Usar predicción combinada solo con datos hasta el punto i
+            $subPuntos = array_slice($puntos, 0, $i);
+            $pred = count($subPuntos) >= 3
+                ? $this->predecir($subPuntos, $p['x'], $m, $b)
+                : ($m * $p['x'] + $b);
+
             $err   = abs($p['y'] - $pred);
             $mae   += $err;
             $rmse  += $err ** 2;
@@ -794,12 +916,12 @@ PROMPT;
         }
 
         return [
-            'mae'        => round($mae / $n, 2),
-            'rmse'       => round(sqrt($rmse / $n), 2),
-            'r2'         => $ssTot > 0 ? round(1 - $ssRes / $ssTot, 4) : 1.0,
-            'mape'       => $mapeCount > 0 ? round(($mape / $mapeCount) * 100, 2) : 0,
+            'mae'         => round($mae / $n, 2),
+            'rmse'        => round(sqrt($rmse / $n), 2),
+            'r2'          => $ssTot > 0 ? round(1 - $ssRes / $ssTot, 4) : 1.0,
+            'mape'        => $mapeCount > 0 ? round(($mape / $mapeCount) * 100, 2) : 0,
             'suficientes' => true,
-            'n'          => $n,
+            'n'           => $n,
         ];
     }
 }

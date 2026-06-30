@@ -127,45 +127,6 @@
             <span class="text-xs text-gray-500">Total unidades + bolsas: <strong>{{ number_format($granTotal) }}</strong></span>
         </div>
 
-        {{-- Productos por aula --}}
-        @if(count($productosAula) > 0)
-        <div class="mt-5 border-2 border-orange-400 rounded-xl overflow-hidden">
-            <div class="bg-orange-400 px-4 py-2 flex items-center space-x-2">
-                <svg class="w-4 h-4 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"/>
-                </svg>
-                <span class="text-white font-black text-xs uppercase tracking-widest">
-                    Productos entregados por aula (no por alumno individual)
-                </span>
-            </div>
-            <table class="w-full text-xs border-collapse">
-                <thead>
-                    <tr class="bg-orange-50">
-                        <th class="border border-orange-200 px-3 py-2 text-left font-bold text-orange-800 uppercase text-[9px]">Producto</th>
-                        <th class="border border-orange-200 px-3 py-2 text-center font-bold text-orange-800 uppercase text-[9px]">Unidad</th>
-                        <th class="border border-orange-200 px-3 py-2 text-center font-bold text-orange-800 uppercase text-[9px]">Presentación</th>
-                        <th class="border border-orange-200 px-3 py-2 text-center font-bold text-orange-800 uppercase text-[9px]">Cantidad para el aula</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($productosAula as $prod)
-                    <tr class="hover:bg-orange-50">
-                        <td class="border border-orange-200 px-3 py-2 font-semibold text-gray-800">{{ $prod['nombre'] }}</td>
-                        <td class="border border-orange-200 px-3 py-2 text-center text-gray-600">{{ $prod['unid'] }}</td>
-                        <td class="border border-orange-200 px-3 py-2 text-center text-gray-600">{{ $prod['presentacion'] }}</td>
-                        <td class="border border-orange-200 px-3 py-2 text-center font-black text-orange-700 text-sm">
-                            {{ number_format($prod['total_aula']) }}
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-            <p class="text-[9px] text-orange-700 px-4 py-2 bg-orange-50 border-t border-orange-200">
-                Estos productos se entregan en cantidad total al aula, no individualmente por alumno.
-            </p>
-        </div>
-        @endif
 
     </div>
 </div>
@@ -187,10 +148,7 @@
         .sticky { position: static !important; }
         thead { display: table-header-group !important; }
         tfoot { display: table-footer-group !important; }
-        .border-orange-400 { border: 1.5px solid #f97316 !important; border-radius: 4px !important; margin-top: 6mm !important; }
-        .bg-orange-400 { background: #f97316 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .bg-orange-50 { background: #fff7ed !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        @page { size: A4 landscape; margin: 8mm; }
+@page { size: A4 landscape; margin: 8mm; }
     }
 </style>
 @endsection

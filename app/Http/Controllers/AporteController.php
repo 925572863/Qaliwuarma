@@ -67,14 +67,16 @@ class AporteController extends Controller
                 ->with('pagos')
                 ->get();
 
-            $pagosMap = [];
+            $pagosMap   = [];
+            $firmadoMap = [];
             foreach ($semanas as $semana) {
                 foreach ($semana->pagos as $p) {
-                    $pagosMap[$semana->id][$p->alumno_id] = (float) $p->monto_aportado;
+                    $pagosMap[$semana->id][$p->alumno_id]   = (float) $p->monto_aportado;
+                    $firmadoMap[$semana->id][$p->alumno_id] = (bool)  $p->firmado;
                 }
             }
 
-            return compact('config', 'alumnos', 'semanas', 'pagosMap');
+            return compact('config', 'alumnos', 'semanas', 'pagosMap', 'firmadoMap');
         })->unique(fn($a) => $a['config']->grado . $a['config']->seccion)
           ->values();
 
@@ -172,12 +174,16 @@ class AporteController extends Controller
         $anio = $request->input('anio');
         $mes  = $request->input('mes');
 
-        // pagos[semana_id][alumno_id] = monto
+        $firmados = $request->input('firmado', []);
+
         foreach ($request->input('pagos', []) as $semanaId => $alumnoPagos) {
             foreach ($alumnoPagos as $alumnoId => $monto) {
                 AportePago::updateOrCreate(
                     ['semana_id' => $semanaId, 'alumno_id' => $alumnoId],
-                    ['monto_aportado' => max(0, (float) $monto)]
+                    [
+                        'monto_aportado' => max(0, (float) $monto),
+                        'firmado'        => isset($firmados[$semanaId][$alumnoId]),
+                    ]
                 );
             }
         }

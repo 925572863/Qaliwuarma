@@ -5,6 +5,52 @@
 
 @section('content')
 
+@if(session('success'))
+<div class="mb-4 px-4 py-3 bg-green-50 border border-green-200 text-green-800 rounded-xl text-sm">
+    {{ session('success') }}
+</div>
+@endif
+@if(session('error'))
+<div class="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm">
+    {{ session('error') }}
+</div>
+@endif
+
+{{-- Modal importar Excel --}}
+<div id="modalImportar" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+        <h3 class="text-base font-bold text-gray-800 mb-1">Importar Distribución desde Excel</h3>
+        <p class="text-xs text-gray-500 mb-4">
+            El archivo debe tener encabezados en la primera fila:<br>
+            <strong>Sección | Alumnos | PRODUCTO1 | PRODUCTO2 ...</strong><br>
+            Los nombres de producto pueden ser cualquier texto (arroz, aceite, etc.).
+        </p>
+        <form method="POST" action="{{ route('pecosa.primaria.distribuciones.importar') }}" enctype="multipart/form-data">
+            @csrf
+            <div class="mb-3">
+                <label class="block text-xs font-medium text-gray-700 mb-1">Nombre de la distribución (opcional)</label>
+                <input type="text" name="nombre" placeholder="Ej: Distribución Junio 2026"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400">
+            </div>
+            <div class="mb-5">
+                <label class="block text-xs font-medium text-gray-700 mb-1">Archivo Excel (.xlsx / .xls)</label>
+                <input type="file" name="archivo" accept=".xlsx,.xls" required
+                       class="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button type="button" onclick="document.getElementById('modalImportar').classList.add('hidden')"
+                        class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-200 rounded-lg transition-colors">
+                    Cancelar
+                </button>
+                <button type="submit"
+                        class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors">
+                    Importar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
     <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-blue-50 to-transparent">
@@ -12,13 +58,22 @@
             <h2 class="text-lg font-bold text-gray-800">Distribuciones Guardadas</h2>
             <p class="text-xs text-gray-500 mt-0.5">{{ $versiones->count() }} distribución(es) registrada(s)</p>
         </div>
-        <a href="{{ route('pecosa.primaria.prorrateo') }}"
-           class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            <span>Nueva Distribución</span>
-        </a>
+        <div class="flex items-center space-x-2">
+            <button onclick="document.getElementById('modalImportar').classList.remove('hidden')"
+                    class="px-4 py-2 bg-white border border-green-500 text-green-700 hover:bg-green-50 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                <span>Importar Excel</span>
+            </button>
+            <a href="{{ route('pecosa.primaria.prorrateo') }}"
+               class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                <span>Nueva Distribución</span>
+            </a>
+        </div>
     </div>
 
     @if($versiones->isEmpty())
