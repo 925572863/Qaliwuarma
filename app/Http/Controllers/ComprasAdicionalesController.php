@@ -54,6 +54,16 @@ class ComprasAdicionalesController extends Controller
         $data['nota']        = $data['nota'] ? strtoupper($data['nota']) : null;
         $data['estado']      = 'pendiente';
 
+        $existe = DB::table('compras_adicionales_inicial')
+            ->whereRaw('UPPER(descripcion) = ?', [$data['descripcion']])
+            ->where('estado', 'pendiente')
+            ->exists();
+
+        if ($existe) {
+            return redirect()->route('pecosa.inicial.compras')
+                ->with('error', 'Este producto ya está en la lista de compras pendientes.');
+        }
+
         DB::table('compras_adicionales_inicial')->insert($data + [
             'created_at' => now(),
             'updated_at' => now(),

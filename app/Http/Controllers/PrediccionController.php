@@ -233,10 +233,14 @@ class PrediccionController extends Controller
             $hashActual = md5($ultimoRegistro . count($historico) . $recetaIA . $ultimaRecetaNut);
 
             // Buscar análisis guardado en BD
-            $guardado = \Illuminate\Support\Facades\DB::table('ia_analisis')
-                ->where('nivel', $nivel)
-                ->where('ultimo_registro', $hashActual)
-                ->first();
+            try {
+                $guardado = \Illuminate\Support\Facades\DB::table('ia_analisis')
+                    ->where('nivel', $nivel)
+                    ->where('ultimo_registro', $hashActual)
+                    ->first();
+            } catch (\Exception $e) {
+                $guardado = null;
+            }
 
             if ($guardado) {
                 $analisisIA = $guardado->analisis;
@@ -326,17 +330,21 @@ PROMPT;
 
             // Guardar en BD si se generó correctamente
             if ($analisisIA) {
-                \Illuminate\Support\Facades\DB::table('ia_analisis')->updateOrInsert(
-                    ['nivel' => $nivel],
-                    [
-                        'analisis'        => $analisisIA,
-                        'receta'          => $recetaIA,
-                        'dias_historico'  => count($historico),
-                        'ultimo_registro' => $hashActual,
-                        'updated_at'      => now(),
-                        'created_at'      => now(),
-                    ]
-                );
+                try {
+                    \Illuminate\Support\Facades\DB::table('ia_analisis')->updateOrInsert(
+                        ['nivel' => $nivel],
+                        [
+                            'analisis'        => $analisisIA,
+                            'receta'          => $recetaIA,
+                            'dias_historico'  => count($historico),
+                            'ultimo_registro' => $hashActual,
+                            'updated_at'      => now(),
+                            'created_at'      => now(),
+                        ]
+                    );
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('ia_analisis insert error: ' . $e->getMessage());
+                }
             }
             } // cierra else
         }
@@ -478,9 +486,12 @@ PROMPT;
     }
 
     // ── Create: formulario de registro ───────────────────────────────────
-    public function create()
+    public function create(Request $request)
     {
-        return view('prediccion.create');
+        $nivel = in_array($request->get('nivel'), ['inicial', 'primaria'])
+            ? $request->get('nivel')
+            : 'inicial';
+        return view('prediccion.create', compact('nivel'));
     }
 
     // ── Store ─────────────────────────────────────────────────────────────
