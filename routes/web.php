@@ -11,6 +11,9 @@ use App\Http\Controllers\ComprasAdicionalesController;
 use App\Http\Controllers\ProductosVencidosController;
 use App\Http\Controllers\EvaluacionController;
 use App\Http\Controllers\ProrrateoInicialController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\ForgotPasswordController;
+use App\Http\Controllers\ResetPasswordController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to dashboard
@@ -20,6 +23,12 @@ Route::get('/', fn () => redirect()->route('dashboard'));
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
+
+    // Recuperar contraseña
+    Route::get('/forgot-password',        [ForgotPasswordController::class, 'show'])->name('password.request');
+    Route::post('/forgot-password',       [ForgotPasswordController::class, 'send'])->name('password.email');
+    Route::get('/reset-password/{token}', [ResetPasswordController::class, 'show'])->name('password.reset');
+    Route::post('/reset-password',        [ResetPasswordController::class, 'reset'])->name('password.update');
 });
 
 Route::get('/logout', [AuthController::class, 'logout'])
@@ -117,4 +126,7 @@ Route::middleware(['auth', 'throttle:120,1'])->group(function () {
     Route::get('/evaluacion/nueva',    [EvaluacionController::class, 'create'])->name('evaluacion.create');
     Route::post('/evaluacion',         [EvaluacionController::class, 'store'])->name('evaluacion.store');
     Route::delete('/evaluacion/{evaluacion}', [EvaluacionController::class, 'destroy'])->name('evaluacion.destroy');
+
+    // Gestión de usuarios
+    Route::resource('users', UserController::class)->except(['show']);
 });

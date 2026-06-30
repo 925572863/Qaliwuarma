@@ -302,7 +302,14 @@
                 </div>
             </form>
 
-            <p class="text-center text-slate-400 dark:text-slate-700 text-xs mt-8">&copy; {{ date('Y') }} PAE</p>
+            <div class="text-center mt-5">
+                <a href="{{ route('password.request') }}"
+                   class="text-xs text-slate-400 hover:text-indigo-500 transition-colors">
+                    ¿Olvidaste tu contraseña?
+                </a>
+            </div>
+
+            <p class="text-center text-slate-400 dark:text-slate-700 text-xs mt-4">&copy; {{ date('Y') }} PAE</p>
         </div>
     </div>
 
