@@ -93,8 +93,8 @@
             <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-widest mt-5 mb-2">Pecosa</p>
 
             {{-- Pecosa Inicial --}}
-            <div x-data="{ open: {{ request()->routeIs('pecosa.inicial.*') ? 'true' : 'false' }} }">
-                <button @click="open = !open"
+            <div>
+                <button onclick="toggleMenu('menu-inicial', this)"
                         class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150
                                {{ request()->routeIs('pecosa.inicial.*') ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-white' }}">
                     <div class="flex items-center space-x-3">
@@ -104,12 +104,12 @@
                         </svg>
                         <span>Inicial</span>
                     </div>
-                    <svg class="w-4 h-4 transition-transform duration-150" :class="open ? 'rotate-180' : ''"
+                    <svg class="chevron w-4 h-4 transition-transform duration-150 {{ request()->routeIs('pecosa.inicial.*') ? 'rotate-180' : '' }}"
                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </button>
-                <div x-show="open" x-transition class="mt-1 ml-8 space-y-1">
+                <div id="menu-inicial" class="mt-1 ml-8 space-y-1 {{ request()->routeIs('pecosa.inicial.*') ? '' : 'hidden' }}">
                     <a href="{{ route('pecosa.inicial.index') }}"
                        class="flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors
                               {{ request()->routeIs('pecosa.inicial.index') ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-white' }}">
@@ -150,8 +150,8 @@
             </div>
 
             {{-- Pecosa Primaria --}}
-            <div x-data="{ open: {{ request()->routeIs('pecosa.primaria.*') ? 'true' : 'false' }} }">
-                <button @click="open = !open"
+            <div>
+                <button onclick="toggleMenu('menu-primaria', this)"
                         class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150
                                {{ request()->routeIs('pecosa.primaria.*') ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-white' }}">
                     <div class="flex items-center space-x-3">
@@ -161,12 +161,12 @@
                         </svg>
                         <span>Primaria</span>
                     </div>
-                    <svg class="w-4 h-4 transition-transform duration-150" :class="open ? 'rotate-180' : ''"
+                    <svg class="chevron w-4 h-4 transition-transform duration-150 {{ request()->routeIs('pecosa.primaria.*') ? 'rotate-180' : '' }}"
                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </button>
-                <div x-show="open" x-transition class="mt-1 ml-8 space-y-1">
+                <div id="menu-primaria" class="mt-1 ml-8 space-y-1 {{ request()->routeIs('pecosa.primaria.*') ? '' : 'hidden' }}">
                     <a href="{{ route('pecosa.primaria.index') }}"
                        class="flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors
                               {{ request()->routeIs('pecosa.primaria.index') ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-white' }}">
@@ -183,10 +183,11 @@
             </div>
 
             {{-- Distribución Primaria --}}
-            <div x-data="{ open: {{ request()->routeIs('pecosa.primaria.prorrateo*') || request()->routeIs('pecosa.primaria.distribuciones*') ? 'true' : 'false' }} }">
-                <button @click="open = !open"
+            <div>
+                @php $distActiva = request()->routeIs('pecosa.primaria.prorrateo*') || request()->routeIs('pecosa.primaria.distribuciones*'); @endphp
+                <button onclick="toggleMenu('menu-dist-primaria', this)"
                         class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150
-                               {{ request()->routeIs('pecosa.primaria.prorrateo*') || request()->routeIs('pecosa.primaria.distribuciones*') ? 'bg-green-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-green-600 dark:hover:text-white' }}">
+                               {{ $distActiva ? 'bg-green-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-green-600 dark:hover:text-white' }}">
                     <div class="flex items-center space-x-3">
                         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -194,12 +195,12 @@
                         </svg>
                         <span>Distribución</span>
                     </div>
-                    <svg class="w-4 h-4 transition-transform duration-150" :class="open ? 'rotate-180' : ''"
+                    <svg class="chevron w-4 h-4 transition-transform duration-150 {{ $distActiva ? 'rotate-180' : '' }}"
                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </button>
-                <div x-show="open" x-transition class="mt-1 ml-8 space-y-1">
+                <div id="menu-dist-primaria" class="mt-1 ml-8 space-y-1 {{ $distActiva ? '' : 'hidden' }}">
                     <a href="{{ route('pecosa.primaria.prorrateo') }}"
                        class="flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors
                               {{ request()->routeIs('pecosa.primaria.prorrateo') && !request()->routeIs('pecosa.primaria.prorrateo.guardar') ? 'bg-green-600 text-white' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-green-600 dark:hover:text-white' }}">
@@ -383,6 +384,12 @@ function toggleSidebar() {
 function closeSidebar() {
     document.getElementById('sidebar').classList.add('-translate-x-full');
     document.getElementById('sidebar-overlay').classList.add('hidden');
+}
+function toggleMenu(id, btn) {
+    const el = document.getElementById(id);
+    const chevron = btn.querySelector('.chevron');
+    const hidden = el.classList.toggle('hidden');
+    if (chevron) chevron.classList.toggle('rotate-180', !hidden);
 }
 </script>
 </body>
