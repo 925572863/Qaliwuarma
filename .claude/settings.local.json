@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "PowerShell(Start-Process \"http://127.0.0.1:8000/prediccion\")"
+      "PowerShell(Start-Process \"http://127.0.0.1:8000/prediccion\")",
+      "Bash(php artisan *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'Fix: reemplazar Alpine.js por JS puro en acordeones del menu lateral *)",
+      "Bash(git push *)"
     ]
   }
 }
