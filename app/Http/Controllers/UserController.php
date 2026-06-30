@@ -80,6 +80,10 @@ class UserController extends Controller
 
     public function resetPassword(Request $request, User $user)
     {
+        if (Auth::id() !== 1) {
+            abort(403, 'No tienes permiso para realizar esta acción.');
+        }
+
         $request->validate([
             'password' => 'required|string|min:8|confirmed',
         ], [

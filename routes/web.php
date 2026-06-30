@@ -12,8 +12,6 @@ use App\Http\Controllers\ProductosVencidosController;
 use App\Http\Controllers\EvaluacionController;
 use App\Http\Controllers\ProrrateoInicialController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\ForgotPasswordController;
-use App\Http\Controllers\ResetPasswordController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to dashboard
