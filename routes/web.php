@@ -81,6 +81,7 @@ Route::middleware(['auth', 'throttle:120,1'])->group(function () {
         Route::post('/importar',       [PrediccionController::class, 'importarHistorico'])->name('importar')->middleware('throttle:10,1');
         Route::post('/guardar-receta',  [PrediccionController::class, 'guardarReceta'])->name('guardar-receta');
         Route::post('/descontar-stock', [PrediccionController::class, 'descontarStock'])->name('descontar-stock');
+        Route::post('/entrenar-ia',     [PrediccionController::class, 'entrenarIA'])->name('entrenar-ia')->middleware('throttle:5,1');
     });
 
     // Aportes PAE – Nivel Inicial

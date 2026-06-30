@@ -94,20 +94,27 @@ class PrediccionController extends Controller
         $m = is_array($regresion[0]) ? 0.0 : (float) $regresion[0];
         $b = is_array($regresion[1]) ? 0.0 : (float) $regresion[1];
 
-        // Predicción próximos días hábiles (combinada: regresión + MA)
-        $n = count($puntos);
-        $predicciones = [];
-        for ($i = 0; $i <= 14 && count($predicciones) < 5; $i++) {
-            $fecha    = now()->addDays($i);
-            $diaSemana = $fecha->dayOfWeek;
-            if ($diaSemana === 0 || $diaSemana === 6) continue;
+        // Predicción próximos días hábiles — usa el modelo IA entrenado (Rubix ML) si existe,
+        // si no, cae al modelo estadístico (regresión ponderada + promedio móvil)
+        $iaService = new \App\Services\PrediccionIAService();
+        $predicciones = $iaService->predecir($nivel);
+        $usandoModeloIA = $predicciones !== null;
 
-            $pred = round($this->predecir($puntos, $n + $i, $m, $b));
-            $predicciones[] = [
-                'fecha'              => $fecha->format('Y-m-d'),
-                'fecha_legible'      => ucfirst($fecha->locale('es')->isoFormat('dddd D/MM')),
-                'raciones_predichas' => $pred,
-            ];
+        if ($predicciones === null) {
+            $n = count($puntos);
+            $predicciones = [];
+            for ($i = 0; $i <= 14 && count($predicciones) < 5; $i++) {
+                $fecha    = now()->addDays($i);
+                $diaSemana = $fecha->dayOfWeek;
+                if ($diaSemana === 0 || $diaSemana === 6) continue;
+
+                $pred = round($this->predecir($puntos, $n + $i, $m, $b));
+                $predicciones[] = [
+                    'fecha'              => $fecha->format('Y-m-d'),
+                    'fecha_legible'      => ucfirst($fecha->locale('es')->isoFormat('dddd D/MM')),
+                    'raciones_predichas' => $pred,
+                ];
+            }
         }
 
         // Métricas (sobre datos sin outliers)
@@ -351,7 +358,8 @@ PROMPT;
 
         return view('prediccion.index', compact(
             'historico', 'predicciones', 'metricas', 'nivel', 'registros', 'resumenMes', 'm', 'b',
-            'ingredientes', 'aulas', 'porFecha', 'listaAlumnos', 'fechasConAulas', 'fechasOrdenadas', 'analisisIA'
+            'ingredientes', 'aulas', 'porFecha', 'listaAlumnos', 'fechasConAulas', 'fechasOrdenadas', 'analisisIA',
+            'usandoModeloIA'
         ));
     }
 
@@ -817,6 +825,23 @@ PROMPT;
         if ($errores) $msg .= ' Errores: ' . implode(' | ', array_slice($errores, 0, 3));
 
         return redirect()->route('prediccion.index', ['nivel' => $nivel])->with('success', $msg);
+    }
+
+    // ── Reentrenar modelo IA manualmente ──────────────────────────────────
+    public function entrenarIA(Request $request)
+    {
+        $nivel = in_array($request->get('nivel'), ['inicial', 'primaria']) ? $request->get('nivel') : 'inicial';
+
+        $service   = new \App\Services\PrediccionIAService();
+        $resultado = $service->entrenar($nivel);
+
+        if ($resultado === null) {
+            return redirect()->route('prediccion.index', ['nivel' => $nivel])
+                ->with('error', 'Sin suficientes datos históricos para entrenar (mínimo 20 días registrados).');
+        }
+
+        return redirect()->route('prediccion.index', ['nivel' => $nivel])
+            ->with('success', "Modelo IA reentrenado con {$resultado['muestras']} días de histórico (error promedio: {$resultado['mae']} raciones).");
     }
 
     // ── Destroy ───────────────────────────────────────────────────────────

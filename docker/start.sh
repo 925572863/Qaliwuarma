@@ -38,5 +38,8 @@ php artisan config:clear
 php artisan route:clear
 php artisan view:clear
 
+# Entrenar modelo predictivo IA con el histórico actual (no falla el deploy si hay poca data)
+php artisan ia:entrenar || true
+
 # Start Apache
 apache2-foreground

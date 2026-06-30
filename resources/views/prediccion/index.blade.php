@@ -419,7 +419,18 @@
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
             <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Predicción Próximos Días Hábiles</h3>
-            <span class="text-xs text-gray-400">Basada en regresión lineal · sin fines de semana</span>
+            <div class="flex items-center space-x-2">
+                @if($usandoModeloIA ?? false)
+                    <span class="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">🤖 Modelo IA entrenado (Rubix ML)</span>
+                @else
+                    <span class="text-xs text-gray-400">Basada en regresión lineal · sin fines de semana</span>
+                @endif
+                <form method="POST" action="{{ route('prediccion.entrenar-ia') }}" onsubmit="return confirm('¿Reentrenar el modelo con el histórico actual?')">
+                    @csrf
+                    <input type="hidden" name="nivel" value="{{ $nivel }}">
+                    <button type="submit" class="text-xs text-blue-600 hover:text-blue-800 underline">Reentrenar</button>
+                </form>
+            </div>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
