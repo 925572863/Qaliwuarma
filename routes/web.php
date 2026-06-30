@@ -24,11 +24,6 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
 
-    // Recuperar contraseña
-    Route::get('/forgot-password',        [ForgotPasswordController::class, 'show'])->name('password.request');
-    Route::post('/forgot-password',       [ForgotPasswordController::class, 'send'])->name('password.email');
-    Route::get('/reset-password/{token}', [ResetPasswordController::class, 'show'])->name('password.reset');
-    Route::post('/reset-password',        [ResetPasswordController::class, 'reset'])->name('password.update');
 });
 
 Route::get('/logout', [AuthController::class, 'logout'])
@@ -129,4 +124,5 @@ Route::middleware(['auth', 'throttle:120,1'])->group(function () {
 
     // Gestión de usuarios
     Route::resource('users', UserController::class)->except(['show']);
+    Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
 });

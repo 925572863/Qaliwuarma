@@ -78,6 +78,22 @@ class UserController extends Controller
             ->with('success', 'Usuario actualizado exitosamente.');
     }
 
+    public function resetPassword(Request $request, User $user)
+    {
+        $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ], [
+            'password.required'     => 'La contraseña es obligatoria.',
+            'password.min'          => 'Debe tener al menos 8 caracteres.',
+            'password.confirmed'    => 'Las contraseñas no coinciden.',
+        ]);
+
+        $user->update(['password' => Hash::make($request->password)]);
+
+        return redirect()->route('users.index')
+            ->with('success', "Contraseña de {$user->name} restablecida exitosamente.");
+    }
+
     public function destroy(User $user)
     {
         if ($user->id === Auth::id()) {

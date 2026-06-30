@@ -15,6 +15,39 @@
 
 @section('content')
 
+{{-- Modal resetear contraseña --}}
+<div id="modal-reset" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6">
+        <h3 class="text-base font-bold text-gray-800 mb-1">Restablecer Contraseña</h3>
+        <p class="text-xs text-gray-500 mb-4">Usuario: <strong id="reset-nombre"></strong></p>
+        <form method="POST" id="form-reset" class="space-y-3">
+            @csrf
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Nueva contraseña</label>
+                <input type="password" name="password" required minlength="8"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                       placeholder="Mínimo 8 caracteres">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Confirmar contraseña</label>
+                <input type="password" name="password_confirmation" required
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                       placeholder="Repite la contraseña">
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button type="button" onclick="cerrarReset()"
+                        class="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancelar
+                </button>
+                <button type="submit"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
+                    Guardar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @if(session('success'))
 <div class="mb-4 px-4 py-3 bg-green-50 border border-green-200 text-green-800 rounded-xl text-sm">
     {{ session('success') }}
@@ -53,6 +86,17 @@
                         </div>
                     </div>
                     <div class="flex items-center space-x-2">
+                        {{-- Resetear contraseña --}}
+                        <button type="button"
+                                onclick="abrirReset({{ $user->id }}, '{{ addslashes($user->name) }}')"
+                                class="px-3 py-1.5 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 rounded-lg text-xs font-medium transition-colors flex items-center space-x-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                            </svg>
+                            <span>Contraseña</span>
+                        </button>
+
+                        {{-- Editar --}}
                         <a href="{{ route('users.edit', $user) }}"
                            class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors flex items-center space-x-1">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,6 +104,8 @@
                             </svg>
                             <span>Editar</span>
                         </a>
+
+                        {{-- Eliminar --}}
                         @if($user->id !== auth()->id())
                             <form method="POST" action="{{ route('users.destroy', $user) }}"
                                   onsubmit="return confirm('¿Eliminar al usuario {{ $user->name }}?')">
@@ -79,4 +125,23 @@
         </div>
     @endif
 </div>
+
+<script>
+const baseUrl = '{{ url("/users") }}';
+
+function abrirReset(id, nombre) {
+    document.getElementById('reset-nombre').textContent = nombre;
+    document.getElementById('form-reset').action = baseUrl + '/' + id + '/reset-password';
+    document.getElementById('modal-reset').classList.remove('hidden');
+}
+
+function cerrarReset() {
+    document.getElementById('modal-reset').classList.add('hidden');
+    document.getElementById('form-reset').reset();
+}
+
+document.getElementById('modal-reset').addEventListener('click', function(e) {
+    if (e.target === this) cerrarReset();
+});
+</script>
 @endsection
