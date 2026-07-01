@@ -25,6 +25,11 @@ echo "SESSION_SAME_SITE=lax" >> .env
 # Set fixed APP_KEY
 sed -i "s|APP_KEY=.*|APP_KEY=base64:oXHr5gyDsE4LV38ue6AkK/leDC464GTIzv/U8zccOTw=|g" .env
 
+# Groq API Key para la función de receta con IA
+if [ -n "${GROQ_API_KEY}" ]; then
+    echo "GROQ_API_KEY=${GROQ_API_KEY}" >> .env
+fi
+
 # Fix permissions
 chown -R www-data:www-data storage bootstrap/cache database
 chmod -R 777 storage bootstrap/cache database
