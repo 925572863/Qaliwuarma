@@ -5,8 +5,6 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
-
 class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
@@ -17,7 +15,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'admin@qualiwuarma.com'],
             [
                 'name'     => 'Administrador',
-                'password' => Hash::make('password'),
+                'password' => 'password',
             ]
         );
 
