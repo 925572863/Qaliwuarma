@@ -143,8 +143,21 @@ class ProrrateoController extends Controller
             DB::table('prorrateo_primaria')->insert($chunk);
         }
 
+        // Descontar stock de pecosa_primaria
+        $totalesPorProducto = [];
+        foreach ($cantidades as $productos) {
+            foreach ($productos as $pecosaId => $cantidad) {
+                $totalesPorProducto[$pecosaId] = ($totalesPorProducto[$pecosaId] ?? 0) + max(0, (int) $cantidad);
+            }
+        }
+        foreach ($totalesPorProducto as $pecosaId => $totalDescontar) {
+            DB::table('pecosa_primaria')
+                ->where('id', $pecosaId)
+                ->decrement('cant', $totalDescontar);
+        }
+
         return redirect()->route('pecosa.primaria.distribuciones')
-            ->with('success', 'Distribución guardada correctamente.');
+            ->with('success', 'Distribución guardada y stock descontado correctamente.');
     }
 
     public function historial()
