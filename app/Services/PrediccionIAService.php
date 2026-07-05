@@ -11,7 +11,7 @@ use Rubix\ML\Regressors\GradientBoost;
 
 class PrediccionIAService
 {
-    private const MIN_MUESTRAS = 20;
+    private const MIN_MUESTRAS = 10;
 
     public static function rutaModelo(string $nivel): string
     {
