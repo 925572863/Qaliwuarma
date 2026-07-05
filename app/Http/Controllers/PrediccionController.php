@@ -127,10 +127,12 @@ class PrediccionController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        // Totales del mes actual
+        // Totales del mes con más registros recientes
+        $ultimaFecha = RegistroAsistencia::where('nivel', $nivel)->max('fecha');
+        $mesRef = $ultimaFecha ? \Carbon\Carbon::parse($ultimaFecha) : now();
         $resumenMes = RegistroAsistencia::where('nivel', $nivel)
-            ->whereYear('fecha', now()->year)
-            ->whereMonth('fecha', now()->month)
+            ->whereYear('fecha', $mesRef->year)
+            ->whereMonth('fecha', $mesRef->month)
             ->selectRaw('SUM(raciones) as total_raciones, SUM(presentes) as total_presentes, COUNT(DISTINCT fecha) as dias_registrados')
             ->first();
 
@@ -359,7 +361,7 @@ PROMPT;
         return view('prediccion.index', compact(
             'historico', 'predicciones', 'metricas', 'nivel', 'registros', 'resumenMes', 'm', 'b',
             'ingredientes', 'aulas', 'porFecha', 'listaAlumnos', 'fechasConAulas', 'fechasOrdenadas', 'analisisIA',
-            'usandoModeloIA'
+            'usandoModeloIA', 'mesRef'
         ));
     }
 

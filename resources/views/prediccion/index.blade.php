@@ -288,11 +288,11 @@
     {{-- Resumen del mes --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Raciones este mes</p>
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Raciones {{ ucfirst($mesRef->locale('es')->isoFormat('MMMM YYYY')) }}</p>
             <p class="text-3xl font-bold text-gray-900">{{ number_format($resumenMes->total_raciones ?? 0) }}</p>
         </div>
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total presentes este mes</p>
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Presentes {{ ucfirst($mesRef->locale('es')->isoFormat('MMMM YYYY')) }}</p>
             <p class="text-3xl font-bold text-gray-900">{{ number_format($resumenMes->total_presentes ?? 0) }}</p>
         </div>
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
