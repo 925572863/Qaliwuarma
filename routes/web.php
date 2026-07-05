@@ -17,6 +17,16 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// Exportar datos temporalmente (solo para migración)
+Route::get('/exportar-datos-migracion', function () {
+    $data = [
+        'registros_asistencia' => \App\Models\RegistroAsistencia::all()->toArray(),
+        'pecosa_inicial'       => \DB::table('pecosa_inicial')->get()->toArray(),
+        'pecosa_primaria'      => \DB::table('pecosa_primaria')->get()->toArray(),
+    ];
+    return response()->json($data);
+})->middleware('auth');
+
 // Auth
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
