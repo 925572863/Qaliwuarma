@@ -27,7 +27,11 @@ sed -i "s|APP_KEY=.*|APP_KEY=base64:oXHr5gyDsE4LV38ue6AkK/leDC464GTIzv/U8zccOTw=
 
 # Groq API Key para la función de receta con IA
 if [ -n "${GROQ_API_KEY}" ]; then
-    echo "GROQ_API_KEY=${GROQ_API_KEY}" >> .env
+    if grep -q "^GROQ_API_KEY=" .env; then
+        sed -i "s|GROQ_API_KEY=.*|GROQ_API_KEY=${GROQ_API_KEY}|g" .env
+    else
+        echo "GROQ_API_KEY=${GROQ_API_KEY}" >> .env
+    fi
 fi
 
 # Fix permissions
