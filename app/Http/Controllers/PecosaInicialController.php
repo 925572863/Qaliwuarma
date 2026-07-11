@@ -110,7 +110,7 @@ class PecosaInicialController extends Controller
     public function nutricion(Request $request)
     {
         $ids    = $request->input('productos', []);
-        $receta = $request->input('receta', '');
+        $receta = (string) $request->input('receta', '');
 
         $query = PecosaInicial::orderBy('descripcion');
         if (!empty($ids)) {
