@@ -22,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**
@@ -45,5 +46,19 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Puede gestionar los módulos de investigación de la tesis: registrar,
+     * importar y eliminar fichas (4, 5 y 6) y entrenar el modelo IA.
+     */
+    public function puedeGestionarInvestigacion(): bool
+    {
+        return in_array($this->role, ['admin', 'investigador'], true);
     }
 }

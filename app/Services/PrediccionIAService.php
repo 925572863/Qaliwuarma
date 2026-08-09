@@ -2,24 +2,52 @@
 
 namespace App\Services;
 
+use App\Models\IaEntrenamiento;
 use App\Models\RegistroAsistencia;
 use Illuminate\Support\Facades\Log;
-use Rubix\ML\Datasets\Labeled;
-use Rubix\ML\PersistentModel;
-use Rubix\ML\Persisters\Filesystem;
-use Rubix\ML\Regressors\GradientBoost;
+use Symfony\Component\Process\Exception\ProcessFailedException;
+use Symfony\Component\Process\Process;
 
+/**
+ * Modelo de aprendizaje automático (Random Forest) para predecir la demanda
+ * diaria de raciones, tal como se sustenta en la tesis "Modelo de aprendizaje
+ * automático para optimizar la gestión del servicio alimentario escolar en
+ * una institución educativa de Piura, 2026".
+ *
+ * El entrenamiento y la predicción se delegan a un script Python
+ * (scikit-learn RandomForestRegressor, validación cruzada k-fold, métricas
+ * MAE/RMSE/MAPE/R²) invocado como proceso externo. Este servicio solo se
+ * encarga de exportar el histórico, invocar el script y decodificar su
+ * salida JSON.
+ */
 class PrediccionIAService
 {
     private const MIN_MUESTRAS = 10;
 
     public static function rutaModelo(string $nivel): string
     {
-        return storage_path("app/ia_modelos/modelo_{$nivel}.rbx");
+        return storage_path("app/ia_modelos/modelo_{$nivel}.joblib");
+    }
+
+    private static function rutaDatos(string $nivel): string
+    {
+        return storage_path("app/ia_modelos/datos_{$nivel}.json");
+    }
+
+    private static function rutaScript(): string
+    {
+        return base_path('python/prediccion_raciones.py');
+    }
+
+    private static function python(): string
+    {
+        return env('PYTHON_BIN', 'python');
     }
 
     /**
-     * Construye el histórico diario (fecha + raciones) agrupado, igual que PrediccionController.
+     * Construye el histórico diario (fecha + raciones) agrupado por día,
+     * incluyendo las variables de contexto del marco teórico (clima, eventos
+     * especiales del calendario) cuando están disponibles.
      */
     private function historicoDiario(string $nivel): array
     {
@@ -30,6 +58,10 @@ class PrediccionIAService
             ->map(fn ($grupo, $fecha) => [
                 'fecha'    => $fecha,
                 'raciones' => (float) $grupo->sum('raciones'),
+                // Variable de contexto: lluvia registrada en alguna sección ese día
+                'clima_lluvioso' => $grupo->contains(fn ($r) => $r->condicion_climatica === 'lluvioso') ? 1 : 0,
+                // Variable de contexto: feriado próximo/actividad especial reportada ese día
+                'evento_especial' => $grupo->contains(fn ($r) => (bool) $r->evento_especial) ? 1 : 0,
             ])
             ->values()
             ->sortBy('fecha')
@@ -37,80 +69,110 @@ class PrediccionIAService
             ->toArray();
     }
 
-    /**
-     * Genera [features, label] por cada día con suficiente histórico previo (lags).
-     */
-    private function construirMuestras(array $historico): array
-    {
-        $samples = [];
-        $labels  = [];
-
-        foreach ($historico as $i => $dia) {
-            if ($i < 3) continue; // necesita al menos 3 días previos para los promedios móviles
-
-            $fecha = \Carbon\Carbon::parse($dia['fecha']);
-            $anteriores = array_slice($historico, max(0, $i - 7), min($i, 7));
-            $valoresAnt = array_column($anteriores, 'raciones');
-
-            $ma3 = array_sum(array_slice($valoresAnt, -3)) / min(3, count($valoresAnt));
-            $ma7 = array_sum($valoresAnt) / count($valoresAnt);
-
-            $samples[] = [
-                (float) $fecha->dayOfWeek,
-                (float) $fecha->day,
-                (float) $fecha->month,
-                (float) $i,
-                $ma3,
-                $ma7,
-            ];
-            $labels[] = $dia['raciones'];
-        }
-
-        return [$samples, $labels];
-    }
-
-    /**
-     * Entrena y persiste el modelo para un nivel. Devuelve estadísticas o null si faltan datos.
-     */
-    public function entrenar(string $nivel): ?array
+    private function exportarDatos(string $nivel): string
     {
         $historico = $this->historicoDiario($nivel);
-        [$samples, $labels] = $this->construirMuestras($historico);
+        $ruta = self::rutaDatos($nivel);
 
-        if (count($samples) < self::MIN_MUESTRAS) {
-            return null;
-        }
-
-        $dataset = new Labeled($samples, $labels);
-
-        $estimator = new GradientBoost(
-            booster: null,
-            rate: 0.1,
-            ratio: 0.5,
-            epochs: 300,
-            minChange: 1e-4,
-            window: 5,
-            holdOut: 0.1,
-        );
-
-        $estimator->train($dataset);
-
-        $ruta = self::rutaModelo($nivel);
         if (!is_dir(dirname($ruta))) {
             mkdir(dirname($ruta), 0775, true);
         }
 
-        $persistente = new PersistentModel($estimator, new Filesystem($ruta));
-        $persistente->save();
+        file_put_contents($ruta, json_encode($historico));
 
-        // Error de entrenamiento (MAE sobre el propio set, solo referencial)
-        $predicciones = $estimator->predict($dataset);
-        $errores = array_map(fn ($real, $pred) => abs($real - $pred), $labels, $predicciones);
-        $mae = round(array_sum($errores) / count($errores), 2);
+        return $ruta;
+    }
+
+    /**
+     * Ejecuta el script Python y decodifica su salida JSON.
+     */
+    private function ejecutar(array $argumentos): ?array
+    {
+        $process = new Process(array_merge([self::python(), self::rutaScript()], $argumentos));
+        $process->setTimeout(120);
+        $process->run();
+
+        $salida = trim($process->getOutput());
+
+        if ($salida === '') {
+            Log::error('PrediccionIAService: el script Python no devolvió salida. ' . $process->getErrorOutput());
+            return null;
+        }
+
+        $resultado = json_decode($salida, true);
+
+        if (!is_array($resultado)) {
+            Log::error('PrediccionIAService: salida no interpretable como JSON: ' . $salida);
+            return null;
+        }
+
+        if (!$process->isSuccessful() && !($resultado['ok'] ?? false)) {
+            Log::warning('PrediccionIAService: proceso Python finalizó con error: ' . ($resultado['error'] ?? 'desconocido'));
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * Entrena el modelo Random Forest para un nivel. Devuelve estadísticas
+     * (muestras, hiperparámetros y métricas MAE/RMSE/MAPE/R²) o null si
+     * faltan datos suficientes.
+     */
+    public function entrenar(string $nivel): ?array
+    {
+        $historico = $this->historicoDiario($nivel);
+
+        if (count($historico) < self::MIN_MUESTRAS) {
+            return null;
+        }
+
+        $rutaDatos = $this->exportarDatos($nivel);
+        $rutaModelo = self::rutaModelo($nivel);
+
+        if (!is_dir(dirname($rutaModelo))) {
+            mkdir(dirname($rutaModelo), 0775, true);
+        }
+
+        $resultado = $this->ejecutar([
+            'entrenar',
+            '--nivel', $nivel,
+            '--datos', $rutaDatos,
+            '--modelo', $rutaModelo,
+        ]);
+
+        if (!$resultado || !($resultado['ok'] ?? false)) {
+            return null;
+        }
+
+        $preprocesamiento = $resultado['preprocesamiento'] ?? [];
+
+        // Persiste las fichas 1, 2 y 3 (VI) en un único registro histórico.
+        IaEntrenamiento::create([
+            'nivel'                    => $nivel,
+            'registros_totales'        => $preprocesamiento['registros_totales'] ?? 0,
+            'registros_depurados'      => $preprocesamiento['registros_depurados'] ?? 0,
+            'pct_depurados'            => $preprocesamiento['pct_depurados'] ?? 0,
+            'pct_completos'            => $preprocesamiento['pct_completos'] ?? 0,
+            'k_folds'                  => $resultado['k_folds'] ?? 0,
+            'mae'                      => $resultado['metricas']['mae'] ?? null,
+            'rmse'                     => $resultado['metricas']['rmse'] ?? null,
+            'mape'                     => $resultado['metricas']['mape'] ?? null,
+            'r2'                       => $resultado['metricas']['r2'] ?? null,
+            'folds_detalle'            => $resultado['folds_detalle'] ?? [],
+            'n_estimators'             => $resultado['n_estimators'] ?? null,
+            'max_depth'                => $resultado['max_depth'] ?? null,
+            'tiempo_entrenamiento_seg' => $resultado['tiempo_entrenamiento_seg'] ?? null,
+        ]);
 
         return [
-            'muestras' => count($samples),
-            'mae'      => $mae,
+            'muestras'    => $resultado['muestras'] ?? null,
+            'n_arboles'   => $resultado['n_estimators'] ?? null,
+            'profundidad' => $resultado['max_depth'] ?? null,
+            'k_folds'     => $resultado['k_folds'] ?? null,
+            'mae'         => $resultado['metricas']['mae'] ?? null,
+            'rmse'        => $resultado['metricas']['rmse'] ?? null,
+            'mape'        => $resultado['metricas']['mape'] ?? null,
+            'r2'          => $resultado['metricas']['r2'] ?? null,
         ];
     }
 
@@ -121,7 +183,7 @@ class PrediccionIAService
 
     /**
      * Predice 'cantidad' días hábiles futuros usando el modelo entrenado.
-     * Devuelve null si no hay modelo guardado.
+     * Devuelve null si no hay modelo guardado o falla la predicción.
      */
     public function predecir(string $nivel, int $cantidad = 5): ?array
     {
@@ -129,51 +191,20 @@ class PrediccionIAService
             return null;
         }
 
-        try {
-            $estimator = PersistentModel::load(new Filesystem(self::rutaModelo($nivel)));
-        } catch (\Throwable $e) {
-            Log::error("PrediccionIAService: no se pudo cargar modelo {$nivel}: " . $e->getMessage());
+        $rutaDatos = $this->exportarDatos($nivel);
+
+        $resultado = $this->ejecutar([
+            'predecir',
+            '--nivel', $nivel,
+            '--datos', $rutaDatos,
+            '--modelo', self::rutaModelo($nivel),
+            '--dias', (string) $cantidad,
+        ]);
+
+        if (!$resultado || !($resultado['ok'] ?? false)) {
             return null;
         }
 
-        $historico = $this->historicoDiario($nivel);
-        if (empty($historico)) {
-            return null;
-        }
-
-        $serie = array_column($historico, 'raciones'); // se irá extendiendo con las predicciones
-        $n     = count($historico);
-
-        $predicciones = [];
-        for ($i = 0; $i <= 14 && count($predicciones) < $cantidad; $i++) {
-            $fecha = now()->addDays($i);
-            if (in_array($fecha->dayOfWeek, [0, 6])) continue;
-
-            $idx = $n + count($predicciones);
-            $ultimos7 = array_slice($serie, -7);
-            $ma3 = array_sum(array_slice($serie, -3)) / min(3, count($serie));
-            $ma7 = array_sum($ultimos7) / count($ultimos7);
-
-            $features = [
-                (float) $fecha->dayOfWeek,
-                (float) $fecha->day,
-                (float) $fecha->month,
-                (float) $idx,
-                $ma3,
-                $ma7,
-            ];
-
-            $pred = max(0, round($estimator->predict(new \Rubix\ML\Datasets\Unlabeled([$features]))[0]));
-
-            $serie[] = $pred; // autoregresivo: la predicción alimenta el siguiente cálculo de MA
-
-            $predicciones[] = [
-                'fecha'              => $fecha->format('Y-m-d'),
-                'fecha_legible'      => ucfirst($fecha->locale('es')->isoFormat('dddd D/MM')),
-                'raciones_predichas' => (int) $pred,
-            ];
-        }
-
-        return $predicciones;
+        return $resultado['predicciones'] ?? [];
     }
 }

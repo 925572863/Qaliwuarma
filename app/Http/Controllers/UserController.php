@@ -24,11 +24,13 @@ class UserController extends Controller
         $request->validate([
             'name'                  => 'required|string|max:100',
             'email'                 => 'required|email|max:255|unique:users,email',
+            'role'                  => 'required|in:admin,investigador,personal',
             'password'              => 'required|string|min:8|confirmed',
         ], [
             'name.required'         => 'El nombre es obligatorio.',
             'email.required'        => 'El correo es obligatorio.',
             'email.unique'          => 'Ya existe un usuario con ese correo.',
+            'role.required'         => 'Selecciona un rol.',
             'password.required'     => 'La contraseña es obligatoria.',
             'password.min'          => 'La contraseña debe tener al menos 8 caracteres.',
             'password.confirmed'    => 'Las contraseñas no coinciden.',
@@ -37,6 +39,7 @@ class UserController extends Controller
         User::create([
             'name'     => $request->name,
             'email'    => $request->email,
+            'role'     => $request->role,
             'password' => $request->password,
         ]);
 
@@ -54,10 +57,12 @@ class UserController extends Controller
         $request->validate([
             'name'     => 'required|string|max:100',
             'email'    => 'required|email|max:255|unique:users,email,' . $user->id,
+            'role'     => 'required|in:admin,investigador,personal',
             'password' => 'nullable|string|min:8|confirmed',
         ], [
             'name.required'      => 'El nombre es obligatorio.',
             'email.unique'       => 'Ya existe un usuario con ese correo.',
+            'role.required'      => 'Selecciona un rol.',
             'password.min'       => 'La contraseña debe tener al menos 8 caracteres.',
             'password.confirmed' => 'Las contraseñas no coinciden.',
         ]);
@@ -65,6 +70,7 @@ class UserController extends Controller
         $data = [
             'name'  => $request->name,
             'email' => $request->email,
+            'role'  => $request->role,
         ];
 
         if ($request->filled('password')) {

@@ -9,7 +9,7 @@ class EntrenarModeloIA extends Command
 {
     protected $signature = 'ia:entrenar {nivel? : inicial o primaria, omite para entrenar ambos}';
 
-    protected $description = 'Entrena el modelo predictivo (Rubix ML / GradientBoost) con el histórico de asistencia';
+    protected $description = 'Entrena el modelo predictivo (Random Forest / scikit-learn, Python) con el histórico de asistencia';
 
     public function handle(PrediccionIAService $service): int
     {
@@ -25,11 +25,12 @@ class EntrenarModeloIA extends Command
             $resultado = $service->entrenar($nivel);
 
             if ($resultado === null) {
-                $this->warn("  Sin suficientes datos históricos para entrenar (mínimo 20 días con histórico). Se sigue usando el modelo estadístico.");
+                $this->warn('  Sin suficientes datos históricos para entrenar (mínimo 10 días con histórico) o falló el script Python.');
                 continue;
             }
 
-            $this->info("  Entrenado con {$resultado['muestras']} muestras. Error promedio (MAE): {$resultado['mae']} raciones.");
+            $this->info("  Entrenado con {$resultado['muestras']} muestras ({$resultado['n_arboles']} árboles, profundidad {$resultado['profundidad']}, {$resultado['k_folds']}-fold CV).");
+            $this->info("  MAE: {$resultado['mae']} | RMSE: {$resultado['rmse']} | MAPE: {$resultado['mape']}% | R²: {$resultado['r2']}");
         }
 
         return self::SUCCESS;

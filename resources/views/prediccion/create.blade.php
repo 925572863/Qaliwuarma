@@ -127,6 +127,33 @@
                               class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                               placeholder="Ej. Lluvia, actividad escolar, etc.">{{ old('observaciones') }}</textarea>
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Raciones planificadas (opcional)</label>
+                    <input type="number" name="raciones_planificadas" min="0" max="500"
+                           value="{{ old('raciones_planificadas') }}"
+                           class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Cantidad de raciones que se prepararon para la jornada">
+                    <p class="text-xs text-gray-500 mt-1">Si se llena, permite calcular la desviación frente a las raciones realmente consumidas (indicador de estimación de demanda).</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Condición climática</label>
+                        <select name="condicion_climatica"
+                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">— Sin especificar —</option>
+                            <option value="soleado" @selected(old('condicion_climatica')=='soleado')>Soleado</option>
+                            <option value="nublado" @selected(old('condicion_climatica')=='nublado')>Nublado</option>
+                            <option value="lluvioso" @selected(old('condicion_climatica')=='lluvioso')>Lluvioso</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center pt-7">
+                        <label class="inline-flex items-center space-x-2 text-sm text-gray-700">
+                            <input type="checkbox" name="evento_especial" value="1" @checked(old('evento_especial'))
+                                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span>Feriado próximo / evento especial</span>
+                        </label>
+                    </div>
+                </div>
             </div>
         </div>
 

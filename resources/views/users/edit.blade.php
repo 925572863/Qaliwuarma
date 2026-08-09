@@ -26,6 +26,17 @@
                 @error('email')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
             </div>
 
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">Rol <span class="text-red-500">*</span></label>
+                <select name="role" required
+                        class="w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 {{ $errors->has('role') ? 'border-red-400' : 'border-gray-300' }}">
+                    <option value="personal" @selected(old('role', $user->role) === 'personal')>Personal (solo consulta y asistencia diaria)</option>
+                    <option value="investigador" @selected(old('role', $user->role) === 'investigador')>Investigador (gestiona las fichas de tesis)</option>
+                    <option value="admin" @selected(old('role', $user->role) === 'admin')>Administrador (acceso total)</option>
+                </select>
+                @error('role')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+            </div>
+
             <div class="border-t border-gray-100 pt-4">
                 <p class="text-xs text-gray-400 mb-3">Deja en blanco si no deseas cambiar la contraseña.</p>
                 <div class="space-y-4">

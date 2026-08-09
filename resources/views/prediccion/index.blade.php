@@ -46,6 +46,26 @@
             </select>
         </form>
 
+        @can('gestionar-investigacion')
+        {{-- Exportar histórico (Ficha 4) --}}
+        <a href="{{ route('exportar.raciones') }}"
+           class="inline-flex items-center space-x-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            <span>Exportar CSV</span>
+        </a>
+
+        {{-- Comparativo pareado pretest/postest para SPSS (H1) --}}
+        <a href="{{ route('exportar.comparativo.raciones') }}"
+           title="Error de estimación pretest vs postest, listo para prueba de muestras relacionadas en SPSS"
+           class="inline-flex items-center space-x-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+            </svg>
+            <span>Comparativo SPSS</span>
+        </a>
+
         {{-- Botón importar histórico --}}
         <button onclick="document.getElementById('modal-import-hist').classList.remove('hidden')"
                 class="inline-flex items-center space-x-1.5 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
@@ -54,6 +74,7 @@
             </svg>
             <span>Importar Histórico</span>
         </button>
+        @endcan
 
         <a href="{{ route('prediccion.create', ['nivel' => $nivel]) }}"
            class="inline-flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
@@ -425,11 +446,13 @@
                 @else
                     <span class="text-xs text-gray-400">Basada en regresión lineal · sin fines de semana</span>
                 @endif
+                @can('gestionar-investigacion')
                 <form method="POST" action="{{ route('prediccion.entrenar-ia') }}" onsubmit="return confirm('¿Reentrenar el modelo con el histórico actual?')">
                     @csrf
                     <input type="hidden" name="nivel" value="{{ $nivel }}">
                     <button type="submit" class="text-xs text-blue-600 hover:text-blue-800 underline">Reentrenar</button>
                 </form>
+                @endcan
             </div>
         </div>
         <div class="overflow-x-auto">
@@ -604,11 +627,13 @@
                             </td>
                             <td class="px-6 py-3 text-center font-bold text-gray-900">{{ $reg->raciones }}</td>
                             <td class="px-6 py-3 text-right">
+                                @can('gestionar-investigacion')
                                 <form method="POST" action="{{ route('prediccion.destroy', $reg) }}"
                                       onsubmit="return confirm('¿Eliminar este registro?')">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-medium">Eliminar</button>
                                 </form>
+                                @endcan
                             </td>
                         </tr>
                     @endforeach

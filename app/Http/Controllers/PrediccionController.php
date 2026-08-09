@@ -94,7 +94,7 @@ class PrediccionController extends Controller
         $m = is_array($regresion[0]) ? 0.0 : (float) $regresion[0];
         $b = is_array($regresion[1]) ? 0.0 : (float) $regresion[1];
 
-        // Predicción próximos días hábiles — usa el modelo IA entrenado (Rubix ML) si existe,
+        // Predicción próximos días hábiles — usa el modelo IA entrenado (Random Forest / Python) si existe,
         // si no, cae al modelo estadístico (regresión ponderada + promedio móvil)
         $iaService = new \App\Services\PrediccionIAService();
         $predicciones = $iaService->predecir($nivel);
@@ -515,6 +515,9 @@ PROMPT;
             'total_alumnos' => 'required|integer|min:1|max:500',
             'presentes'     => 'required|integer|min:0|max:500',
             'raciones'      => 'required|integer|min:0|max:500',
+            'raciones_planificadas' => 'nullable|integer|min:0|max:500',
+            'condicion_climatica'   => 'nullable|in:soleado,nublado,lluvioso',
+            'evento_especial'       => 'nullable|boolean',
             'observaciones' => 'nullable|string|max:500',
             'detalle_json'        => 'nullable|string',
         ]);
@@ -537,6 +540,9 @@ PROMPT;
             'total_alumnos' => $validated['total_alumnos'],
             'presentes'     => $validated['presentes'],
             'raciones'      => $validated['raciones'],
+            'raciones_planificadas' => $validated['raciones_planificadas'] ?? null,
+            'condicion_climatica' => $validated['condicion_climatica'] ?? null,
+            'evento_especial'     => (bool) ($validated['evento_especial'] ?? false),
             'observaciones' => $validated['observaciones'] ?? null,
             'updated_at'    => now(),
         ];
@@ -756,6 +762,7 @@ PROMPT;
         $colPresentes= $col(['presentes', 'asistentes', 'presentes']);
         $colTotal    = $col(['total_alumnos', 'total', 'matriculados', 'total alumnos']);
         $colRaciones = $col(['raciones', 'raciones_entregadas']);
+        $colRacionesPlan = $col(['raciones_planificadas', 'raciones_plan', 'raciones planificadas']);
 
         if ($colFecha === null || $colPresentes === null) {
             return back()->withErrors(['archivo' => 'El archivo debe tener al menos las columnas: fecha y presentes.']);
@@ -806,6 +813,7 @@ PROMPT;
                     'total_alumnos' => max($total, $presentes),
                     'presentes'     => $presentes,
                     'raciones'      => $raciones ?: $presentes,
+                    'raciones_planificadas' => $colRacionesPlan !== null ? (int) ($row[$colRacionesPlan] ?? 0) ?: null : null,
                     'updated_at'    => now(),
                 ];
 
