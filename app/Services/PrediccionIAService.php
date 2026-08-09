@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\IaEntrenamiento;
 use App\Models\RegistroAsistencia;
 use Illuminate\Support\Facades\Log;
-use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 
 /**
