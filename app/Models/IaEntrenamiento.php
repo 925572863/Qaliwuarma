@@ -14,7 +14,7 @@ class IaEntrenamiento extends Model
     protected $table = 'ia_entrenamientos';
 
     protected $fillable = [
-        'nivel', 'fase',
+        'nivel', 'grado', 'fase',
         'registros_totales', 'registros_depurados', 'pct_depurados', 'pct_completos',
         'k_folds', 'mae', 'rmse', 'mape', 'r2', 'folds_detalle',
         'n_estimators', 'max_depth', 'tiempo_entrenamiento_seg',

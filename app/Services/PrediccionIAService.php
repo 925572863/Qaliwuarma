@@ -18,19 +18,53 @@ use Symfony\Component\Process\Process;
  * MAE/RMSE/MAPE/R²) invocado como proceso externo. Este servicio solo se
  * encarga de exportar el histórico, invocar el script y decodificar su
  * salida JSON.
+ *
+ * Además del modelo agregado por nivel (inicial/primaria), admite entrenar
+ * modelos independientes por grado (ej. "3 Años", "4 Años", "5 Años" dentro
+ * de inicial), pasando el parámetro $grado. Con $grado = null se usa el
+ * histórico de todo el nivel, tal como antes.
  */
 class PrediccionIAService
 {
     private const MIN_MUESTRAS = 10;
 
-    public static function rutaModelo(string $nivel): string
+    /**
+     * Convierte un grado en un slug ASCII seguro, tanto para nombres de
+     * archivo como para pasarlo como argumento de línea de comandos al
+     * script Python: en Windows, el subproceso de Python puede devolver
+     * caracteres acentuados (ej. "Años") en una codificación que no es
+     * UTF-8 válido, lo que rompe json_decode() en PHP y hace que
+     * entrenar()/predecir() fallen en silencio. Evitamos el problema de raíz
+     * no enviándole nunca acentos/ñ al proceso hijo.
+     */
+    private static function slugGrado(?string $grado): string
     {
-        return storage_path("app/ia_modelos/modelo_{$nivel}.joblib");
+        if ($grado === null || $grado === '') {
+            return '';
+        }
+        $slug = mb_strtolower(trim($grado));
+        $slug = str_replace(['á', 'é', 'í', 'ó', 'ú', 'ñ'], ['a', 'e', 'i', 'o', 'u', 'n'], $slug);
+        $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+        return trim($slug, '-');
     }
 
-    private static function rutaDatos(string $nivel): string
+    public static function rutaModelo(string $nivel, ?string $grado = null): string
     {
-        return storage_path("app/ia_modelos/datos_{$nivel}.json");
+        $sufijo = self::slugGrado($grado);
+        return storage_path("app/ia_modelos/modelo_{$nivel}" . ($sufijo ? "_{$sufijo}" : '') . ".joblib");
+    }
+
+    private static function rutaDatos(string $nivel, ?string $grado = null): string
+    {
+        $sufijo = self::slugGrado($grado);
+        return storage_path("app/ia_modelos/datos_{$nivel}" . ($sufijo ? "_{$sufijo}" : '') . ".json");
+    }
+
+    /** Etiqueta ASCII segura para pasar como --nivel al script Python (ver slugGrado). */
+    private static function etiquetaProceso(string $nivel, ?string $grado): string
+    {
+        $sufijo = self::slugGrado($grado);
+        return $sufijo ? "{$nivel}:{$sufijo}" : $nivel;
     }
 
     private static function rutaScript(): string
@@ -44,13 +78,30 @@ class PrediccionIAService
     }
 
     /**
-     * Construye el histórico diario (fecha + raciones) agrupado por día,
-     * incluyendo las variables de contexto del marco teórico (clima, eventos
-     * especiales del calendario) cuando están disponibles.
+     * Devuelve los grados distintos con historial de asistencia para un
+     * nivel (ej. ["3 Años", "4 Años", "5 Años"] en inicial), para poder
+     * entrenar un modelo independiente por cada uno.
      */
-    private function historicoDiario(string $nivel): array
+    public function gradosDisponibles(string $nivel): array
     {
         return RegistroAsistencia::where('nivel', $nivel)
+            ->select('grado')
+            ->distinct()
+            ->orderBy('grado')
+            ->pluck('grado')
+            ->all();
+    }
+
+    /**
+     * Construye el histórico diario (fecha + raciones) agrupado por día,
+     * incluyendo las variables de contexto del marco teórico (clima, eventos
+     * especiales del calendario) cuando están disponibles. Si $grado se
+     * indica, filtra el histórico a solo ese grado (todas sus secciones).
+     */
+    private function historicoDiario(string $nivel, ?string $grado = null): array
+    {
+        return RegistroAsistencia::where('nivel', $nivel)
+            ->when($grado !== null, fn ($q) => $q->where('grado', $grado))
             ->orderBy('fecha')
             ->get()
             ->groupBy(fn ($r) => $r->fecha->toDateString())
@@ -68,10 +119,10 @@ class PrediccionIAService
             ->toArray();
     }
 
-    private function exportarDatos(string $nivel): string
+    private function exportarDatos(string $nivel, ?string $grado = null): string
     {
-        $historico = $this->historicoDiario($nivel);
-        $ruta = self::rutaDatos($nivel);
+        $historico = $this->historicoDiario($nivel, $grado);
+        $ruta = self::rutaDatos($nivel, $grado);
 
         if (!is_dir(dirname($ruta))) {
             mkdir(dirname($ruta), 0775, true);
@@ -113,20 +164,21 @@ class PrediccionIAService
     }
 
     /**
-     * Entrena el modelo Random Forest para un nivel. Devuelve estadísticas
+     * Entrena el modelo Random Forest para un nivel (o un grado específico
+     * dentro de ese nivel, si se indica $grado). Devuelve estadísticas
      * (muestras, hiperparámetros y métricas MAE/RMSE/MAPE/R²) o null si
      * faltan datos suficientes.
      */
-    public function entrenar(string $nivel): ?array
+    public function entrenar(string $nivel, ?string $grado = null): ?array
     {
-        $historico = $this->historicoDiario($nivel);
+        $historico = $this->historicoDiario($nivel, $grado);
 
         if (count($historico) < self::MIN_MUESTRAS) {
             return null;
         }
 
-        $rutaDatos = $this->exportarDatos($nivel);
-        $rutaModelo = self::rutaModelo($nivel);
+        $rutaDatos = $this->exportarDatos($nivel, $grado);
+        $rutaModelo = self::rutaModelo($nivel, $grado);
 
         if (!is_dir(dirname($rutaModelo))) {
             mkdir(dirname($rutaModelo), 0775, true);
@@ -134,7 +186,7 @@ class PrediccionIAService
 
         $resultado = $this->ejecutar([
             'entrenar',
-            '--nivel', $nivel,
+            '--nivel', self::etiquetaProceso($nivel, $grado),
             '--datos', $rutaDatos,
             '--modelo', $rutaModelo,
         ]);
@@ -148,6 +200,7 @@ class PrediccionIAService
         // Persiste las fichas 1, 2 y 3 (VI) en un único registro histórico.
         IaEntrenamiento::create([
             'nivel'                    => $nivel,
+            'grado'                    => $grado,
             'registros_totales'        => $preprocesamiento['registros_totales'] ?? 0,
             'registros_depurados'      => $preprocesamiento['registros_depurados'] ?? 0,
             'pct_depurados'            => $preprocesamiento['pct_depurados'] ?? 0,
@@ -175,28 +228,43 @@ class PrediccionIAService
         ];
     }
 
-    public function modeloExiste(string $nivel): bool
+    /**
+     * Entrena un modelo independiente para cada grado con historial
+     * suficiente dentro del nivel indicado. Devuelve un array
+     * [grado => resultado|null] (null si a ese grado le faltan muestras).
+     */
+    public function entrenarPorGrado(string $nivel): array
     {
-        return file_exists(self::rutaModelo($nivel));
+        $resultados = [];
+        foreach ($this->gradosDisponibles($nivel) as $grado) {
+            $resultados[$grado] = $this->entrenar($nivel, $grado);
+        }
+        return $resultados;
+    }
+
+    public function modeloExiste(string $nivel, ?string $grado = null): bool
+    {
+        return file_exists(self::rutaModelo($nivel, $grado));
     }
 
     /**
-     * Predice 'cantidad' días hábiles futuros usando el modelo entrenado.
+     * Predice 'cantidad' días hábiles futuros usando el modelo entrenado
+     * (del nivel completo, o de un grado específico si se indica $grado).
      * Devuelve null si no hay modelo guardado o falla la predicción.
      */
-    public function predecir(string $nivel, int $cantidad = 5): ?array
+    public function predecir(string $nivel, int $cantidad = 5, ?string $grado = null): ?array
     {
-        if (!$this->modeloExiste($nivel)) {
+        if (!$this->modeloExiste($nivel, $grado)) {
             return null;
         }
 
-        $rutaDatos = $this->exportarDatos($nivel);
+        $rutaDatos = $this->exportarDatos($nivel, $grado);
 
         $resultado = $this->ejecutar([
             'predecir',
-            '--nivel', $nivel,
+            '--nivel', self::etiquetaProceso($nivel, $grado),
             '--datos', $rutaDatos,
-            '--modelo', self::rutaModelo($nivel),
+            '--modelo', self::rutaModelo($nivel, $grado),
             '--dias', (string) $cantidad,
         ]);
 

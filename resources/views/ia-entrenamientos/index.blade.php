@@ -57,6 +57,7 @@
                 <tr class="bg-gray-50 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     <th class="px-5 py-3">Fecha</th>
                     <th class="px-5 py-3">Nivel</th>
+                    <th class="px-5 py-3">Grado</th>
                     <th class="px-5 py-3">Fase</th>
                     <th class="px-5 py-3 text-center">% Depurados</th>
                     <th class="px-5 py-3 text-center">% Completos</th>
@@ -73,6 +74,7 @@
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-5 py-3.5 text-gray-600">{{ $e->created_at->format('d/m/Y H:i') }}</td>
                     <td class="px-5 py-3.5 capitalize font-medium text-gray-900">{{ $e->nivel }}</td>
+                    <td class="px-5 py-3.5 text-gray-600">{{ $e->grado ?? 'General (todo el nivel)' }}</td>
                     <td class="px-5 py-3.5">
                         <span class="text-xs font-semibold px-2 py-0.5 rounded-full {{ $e->fase === 'postest' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600' }}">
                             {{ ucfirst($e->fase) }}

@@ -7,7 +7,7 @@ use Illuminate\Console\Command;
 
 class EntrenarModeloIA extends Command
 {
-    protected $signature = 'ia:entrenar {nivel? : inicial o primaria, omite para entrenar ambos}';
+    protected $signature = 'ia:entrenar {nivel? : inicial o primaria, omite para entrenar ambos} {--por-grado : Además del modelo general, entrena un modelo independiente por cada grado}';
 
     protected $description = 'Entrena el modelo predictivo (Random Forest / scikit-learn, Python) con el histórico de asistencia';
 
@@ -21,18 +21,31 @@ class EntrenarModeloIA extends Command
                 continue;
             }
 
-            $this->info("Entrenando modelo para nivel: {$nivel}...");
-            $resultado = $service->entrenar($nivel);
+            $this->info("Entrenando modelo general para nivel: {$nivel}...");
+            $this->entrenarYReportar($service, $nivel, null);
 
-            if ($resultado === null) {
-                $this->warn('  Sin suficientes datos históricos para entrenar (mínimo 10 días con histórico) o falló el script Python.');
-                continue;
+            if ($this->option('por-grado')) {
+                $grados = $service->gradosDisponibles($nivel);
+                foreach ($grados as $grado) {
+                    $this->info("Entrenando modelo para {$nivel} / grado \"{$grado}\"...");
+                    $this->entrenarYReportar($service, $nivel, $grado);
+                }
             }
-
-            $this->info("  Entrenado con {$resultado['muestras']} muestras ({$resultado['n_arboles']} árboles, profundidad {$resultado['profundidad']}, {$resultado['k_folds']}-fold CV).");
-            $this->info("  MAE: {$resultado['mae']} | RMSE: {$resultado['rmse']} | MAPE: {$resultado['mape']}% | R²: {$resultado['r2']}");
         }
 
         return self::SUCCESS;
+    }
+
+    private function entrenarYReportar(PrediccionIAService $service, string $nivel, ?string $grado): void
+    {
+        $resultado = $service->entrenar($nivel, $grado);
+
+        if ($resultado === null) {
+            $this->warn('  Sin suficientes datos históricos para entrenar (mínimo 10 días con histórico) o falló el script Python.');
+            return;
+        }
+
+        $this->info("  Entrenado con {$resultado['muestras']} muestras ({$resultado['n_arboles']} árboles, profundidad {$resultado['profundidad']}, {$resultado['k_folds']}-fold CV).");
+        $this->info("  MAE: {$resultado['mae']} | RMSE: {$resultado['rmse']} | MAPE: {$resultado['mape']}% | R²: {$resultado['r2']}");
     }
 }
