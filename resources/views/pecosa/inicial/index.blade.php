@@ -26,9 +26,15 @@
     <div id="modal-excel-inicial" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
             <h3 class="text-base font-bold text-gray-800 mb-1">Importar desde Excel</h3>
-            <p class="text-xs text-gray-500 mb-4">El archivo debe tener las columnas en este orden:<br>
+            <p class="text-xs text-gray-500 mb-2">El archivo debe tener las columnas en este orden:<br>
                 <span class="font-mono text-gray-700">CANT | UNID | DESCRIPCIÓN | MARCA | PRESENTACIÓN | LOTE</span>
             </p>
+            <a href="{{ route('pecosa.inicial.plantilla') }}" class="inline-flex items-center text-xs text-green-700 hover:text-green-800 font-medium mb-4">
+                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Descargar plantilla de ejemplo
+            </a>
             <form method="POST" action="{{ route('pecosa.inicial.importar') }}" enctype="multipart/form-data">
                 @csrf
                 <div class="mb-4">

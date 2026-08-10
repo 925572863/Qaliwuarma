@@ -72,6 +72,7 @@ Route::middleware(['auth', 'throttle:120,1'])->group(function () {
         Route::post('/distribuciones/importar',      [ProrrateoInicialController::class, 'importarExcel'])->name('distribuciones.importar')->middleware('throttle:10,1');
 
         // Lista de compras adicionales
+        Route::get('/plantilla', [PecosaInicialController::class, 'plantilla'])->name('plantilla');
         Route::post('/importar', [PecosaInicialController::class, 'importar'])->name('importar')->middleware('throttle:10,1');
         Route::post('/nutricion', [PecosaInicialController::class, 'nutricion'])->name('nutricion');
 

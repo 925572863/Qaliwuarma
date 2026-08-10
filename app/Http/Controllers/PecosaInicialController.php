@@ -150,6 +150,28 @@ class PecosaInicialController extends Controller
         return response()->json($resultado);
     }
 
+    /**
+     * Plantilla Excel descargable con el orden de columnas exacto que espera
+     * importar() (por posición, no por nombre de encabezado): cant, unid,
+     * descripcion, marca, presentacion, lote. El volumen y el stock inicial
+     * se calculan automáticamente al importar (cant × presentacion).
+     */
+    public function plantilla()
+    {
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->fromArray([
+            ['cant', 'unid', 'descripcion', 'marca', 'presentacion', 'lote'],
+            [10, 'BOTELLA', 'ACEITE VEGETAL COMESTIBLE', 'SAO', 1.000, '13/03/27'],
+        ]);
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $rutaTemporal = tempnam(sys_get_temp_dir(), 'plantilla_pecosa_inicial') . '.xlsx';
+        $writer->save($rutaTemporal);
+
+        return response()->download($rutaTemporal, 'plantilla_pecosa_inicial.xlsx')->deleteFileAfterSend(true);
+    }
+
     public function importar(Request $request)
     {
         $request->validate([
