@@ -1,0 +1,55 @@
+# Blueprint de despliegue para Render (https://render.com/docs/blueprint-spec)
+# Aplica desde el dashboard con "New +" -> "Blueprint", apuntando a este repo.
+
+databases:
+  - name: qualiwuarma-db
+    databaseName: qualiwuarma
+    plan: free
+    region: oregon
+
+services:
+  - type: web
+    name: qualiwuarma
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: oregon
+    plan: free
+    healthCheckPath: /login
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_URL
+        fromService:
+          type: web
+          name: qualiwuarma
+          property: host
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: qualiwuarma-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: qualiwuarma-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: qualiwuarma-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: qualiwuarma-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: qualiwuarma-db
+          property: password
+      - key: PYTHON_BIN
+        value: /opt/venv/bin/python
+      - key: GROQ_API_KEY
+        sync: false
