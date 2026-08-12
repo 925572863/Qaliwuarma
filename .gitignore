@@ -26,3 +26,7 @@ python/.pytest_cache/
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Base de datos local (contiene datos de prueba/reales, no debe versionarse)
+database/database.sqlite
+database/*.sqlite
