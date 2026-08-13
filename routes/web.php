@@ -49,8 +49,7 @@ Route::get('/setup-entorno/{token}/{accion}', function (string $token, string $a
         'entrenar-primaria' => \Illuminate\Support\Facades\Artisan::call('ia:entrenar', ['nivel' => 'primaria', '--por-grado' => true]),
         default => abort(404),
     };
-    $salida = \Illuminate\Support\Facades\Artisan::output();
-    ob_end_clean();
+    $salida = ob_get_clean() . \Illuminate\Support\Facades\Artisan::output();
 
     return response('<pre>' . e($salida) . '</pre>');
 });
