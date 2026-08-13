@@ -22,38 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: configurar el entorno recien migrado a Neon (sin Shell en el
-// plan free de Render). Protegido por token, se elimina despues de usarse.
-Route::get('/setup-entorno/{token}/{accion}', function (string $token, string $accion) {
-    if (! hash_equals('bb3b4e88d61ec99ab4d8d234e01b6c75c02fdb0773c4482f', $token)) {
-        abort(404);
-    }
-
-    ob_start();
-    match ($accion) {
-        'admin' => (function () {
-            if (\App\Models\User::where('email', 'admin@qualiwuarma.com')->exists()) {
-                echo 'El usuario admin ya existe.';
-                return;
-            }
-            \App\Models\User::create([
-                'name'     => 'Administrador',
-                'email'    => 'admin@qualiwuarma.com',
-                'password' => bcrypt('CambiarClave2026!'),
-                'role'     => 'admin',
-            ]);
-            echo 'Usuario admin creado correctamente.';
-        })(),
-        'seed' => \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'HistoricoSimuladoSeeder', '--force' => true]),
-        'entrenar-inicial' => \Illuminate\Support\Facades\Artisan::call('ia:entrenar', ['nivel' => 'inicial', '--por-grado' => true]),
-        'entrenar-primaria' => \Illuminate\Support\Facades\Artisan::call('ia:entrenar', ['nivel' => 'primaria', '--por-grado' => true]),
-        default => abort(404),
-    };
-    $salida = ob_get_clean() . \Illuminate\Support\Facades\Artisan::output();
-
-    return response('<pre>' . e($salida) . '</pre>');
-});
-
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
