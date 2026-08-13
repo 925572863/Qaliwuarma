@@ -33,8 +33,8 @@ ENV PYTHON_BIN="/opt/venv/bin/python"
 # --- Resto del código --------------------------------------------------------
 COPY . .
 RUN composer dump-autoload --optimize \
-    && mkdir -p storage/framework/{cache,sessions,views} storage/logs \
-    && chmod -R 775 storage bootstrap/cache storage/app/ia_modelos
+    && mkdir -p storage/framework/{cache,sessions,views} storage/logs storage/app/ia_modelos \
+    && chmod -R 775 storage bootstrap/cache
 
 EXPOSE 10000
 COPY docker/entrypoint.sh /entrypoint.sh
