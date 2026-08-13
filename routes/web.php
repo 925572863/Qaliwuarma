@@ -22,6 +22,23 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// TEMPORAL: reentrenar los modelos IA (ahora con respaldo en BD via
+// ia_modelos_binarios) usando el historico ya sembrado en Neon. Protegido
+// por token, se elimina despues de usarse.
+Route::get('/reentrenar/{token}/{nivel}', function (string $token, string $nivel) {
+    if (! hash_equals('72a382c3a575738a7d2e5aa208e91db622eefa1faa91dc76', $token)) {
+        abort(404);
+    }
+    if (!in_array($nivel, ['inicial', 'primaria'], true)) {
+        abort(404);
+    }
+
+    \Illuminate\Support\Facades\Artisan::call('ia:entrenar', ['nivel' => $nivel, '--por-grado' => true]);
+    $salida = \Illuminate\Support\Facades\Artisan::output();
+
+    return response('<pre>' . e($salida) . '</pre>');
+});
+
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
