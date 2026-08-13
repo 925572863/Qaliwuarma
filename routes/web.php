@@ -22,6 +22,24 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// TEMPORAL: crear el primer usuario admin en un entorno recién desplegado
+// (sin datos todavía). Protegido por token, se elimina después de usarse.
+Route::get('/setup-admin-inicial/{token}', function (string $token) {
+    if (! hash_equals('0747e84914475e3274a5d41066878f60b7a7d1672f42aeda', $token)) {
+        abort(404);
+    }
+    if (\App\Models\User::where('email', 'admin@qualiwuarma.com')->exists()) {
+        return 'El usuario admin ya existe.';
+    }
+    \App\Models\User::create([
+        'name'     => 'Administrador',
+        'email'    => 'admin@qualiwuarma.com',
+        'password' => bcrypt('CambiarClave2026!'),
+        'role'     => 'admin',
+    ]);
+    return 'Usuario admin creado correctamente.';
+});
+
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
