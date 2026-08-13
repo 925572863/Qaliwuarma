@@ -22,27 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: sembrar histórico simulado y entrenar modelos IA en un entorno
-// recién desplegado (Render, sin Shell en el plan free). Protegido por
-// token, se elimina después de usarse.
-Route::get('/setup-ia/{token}/{accion}', function (string $token, string $accion) {
-    if (! hash_equals('313c9f347925989247fcef77cde6ba78302bed1e569bf50a', $token)) {
-        abort(404);
-    }
-
-    ob_start();
-    match ($accion) {
-        'seed' => \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'HistoricoSimuladoSeeder', '--force' => true]),
-        'entrenar-inicial' => \Illuminate\Support\Facades\Artisan::call('ia:entrenar', ['nivel' => 'inicial', '--por-grado' => true]),
-        'entrenar-primaria' => \Illuminate\Support\Facades\Artisan::call('ia:entrenar', ['nivel' => 'primaria', '--por-grado' => true]),
-        default => abort(404),
-    };
-    $salida = \Illuminate\Support\Facades\Artisan::output();
-    ob_end_clean();
-
-    return response('<pre>' . e($salida) . '</pre>');
-});
-
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
