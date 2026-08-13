@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\IaEntrenamiento;
+use App\Models\IaModeloBinario;
 use App\Models\RegistroAsistencia;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
@@ -70,6 +71,61 @@ class PrediccionIAService
     private static function rutaScript(): string
     {
         return base_path('python/prediccion_raciones.py');
+    }
+
+    /** Clave única (nivel + slug del grado) usada para guardar/restaurar el modelo en BD. */
+    private static function claveModelo(string $nivel, ?string $grado): string
+    {
+        $sufijo = self::slugGrado($grado);
+        return $sufijo ? "{$nivel}:{$sufijo}" : $nivel;
+    }
+
+    /**
+     * Guarda una copia del modelo recién entrenado en la base de datos.
+     * Necesario porque el filesystem de hosts como Render no es persistente
+     * entre deploys: la BD sí lo es, así que sirve de respaldo para poder
+     * restaurar el .joblib a disco cuando el contenedor se reinicie.
+     */
+    private static function guardarModeloEnBD(string $nivel, ?string $grado): void
+    {
+        $ruta = self::rutaModelo($nivel, $grado);
+        if (!file_exists($ruta)) {
+            return;
+        }
+
+        IaModeloBinario::updateOrCreate(
+            ['clave' => self::claveModelo($nivel, $grado)],
+            [
+                'nivel'     => $nivel,
+                'grado'     => $grado,
+                'contenido' => base64_encode(file_get_contents($ruta)),
+            ]
+        );
+    }
+
+    /**
+     * Si el .joblib no está en disco (ej. tras un deploy nuevo sin
+     * filesystem persistente) pero sí hay una copia en BD, la restaura a
+     * disco. Devuelve true si el archivo existe en disco al terminar.
+     */
+    private static function restaurarModeloSiHaceFalta(string $nivel, ?string $grado): bool
+    {
+        $ruta = self::rutaModelo($nivel, $grado);
+        if (file_exists($ruta)) {
+            return true;
+        }
+
+        $registro = IaModeloBinario::where('clave', self::claveModelo($nivel, $grado))->first();
+        if (!$registro) {
+            return false;
+        }
+
+        if (!is_dir(dirname($ruta))) {
+            mkdir(dirname($ruta), 0775, true);
+        }
+        file_put_contents($ruta, base64_decode($registro->contenido));
+
+        return file_exists($ruta);
     }
 
     private static function python(): string
@@ -195,6 +251,8 @@ class PrediccionIAService
             return null;
         }
 
+        self::guardarModeloEnBD($nivel, $grado);
+
         $preprocesamiento = $resultado['preprocesamiento'] ?? [];
 
         // Persiste las fichas 1, 2 y 3 (VI) en un único registro histórico.
@@ -244,7 +302,7 @@ class PrediccionIAService
 
     public function modeloExiste(string $nivel, ?string $grado = null): bool
     {
-        return file_exists(self::rutaModelo($nivel, $grado));
+        return self::restaurarModeloSiHaceFalta($nivel, $grado);
     }
 
     /**

@@ -156,4 +156,32 @@ class PrediccionIAServiceTest extends TestCase
             $this->assertNotContains($diaSemana, [\Carbon\Carbon::SATURDAY, \Carbon\Carbon::SUNDAY]);
         }
     }
+
+    /**
+     * Reproduce el escenario de un host sin filesystem persistente (ej.
+     * Render en plan free): el .joblib entrenado se pierde en cada deploy,
+     * pero la base de datos sí persiste. modeloExiste()/predecir() deben
+     * restaurar el archivo a disco automáticamente desde la copia guardada
+     * en ia_modelos_binarios.
+     */
+    public function test_modelo_se_restaura_desde_bd_si_falta_en_disco(): void
+    {
+        $this->sembrarHistorico(15);
+        $service = new PrediccionIAService();
+        $service->entrenar('primaria');
+
+        $this->assertDatabaseCount('ia_modelos_binarios', 1);
+        $this->assertDatabaseHas('ia_modelos_binarios', ['clave' => 'primaria']);
+
+        // Simula la pérdida del filesystem entre deploys
+        File::delete(PrediccionIAService::rutaModelo('primaria'));
+        $this->assertFileDoesNotExist(PrediccionIAService::rutaModelo('primaria'));
+
+        $this->assertTrue($service->modeloExiste('primaria'));
+        $this->assertFileExists(PrediccionIAService::rutaModelo('primaria'));
+
+        $predicciones = $service->predecir('primaria', 2);
+        $this->assertNotNull($predicciones);
+        $this->assertCount(2, $predicciones);
+    }
 }
