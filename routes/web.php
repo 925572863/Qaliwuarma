@@ -22,6 +22,23 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// TEMPORAL: verificar conteos (sin exponer datos sensibles) en Render tras
+// la migración a Neon. Protegido por token, se elimina después de usarse.
+Route::get('/check-datos/{token}', function (string $token) {
+    if (! hash_equals('c915077f3947122208ad4d186f639495467644d7aaf8fe12', $token)) {
+        abort(404);
+    }
+
+    return response()->json([
+        'alumnos_total'            => \DB::table('alumnos')->count(),
+        'alumnos_primaria_activos' => \DB::table('alumnos')->where('nivel', 'primaria')->where('estado', 'activo')->count(),
+        'alumnos_inicial_activos'  => \DB::table('alumnos')->where('nivel', 'inicial')->where('estado', 'activo')->count(),
+        'pecosa_primaria'          => \DB::table('pecosa_primaria')->count(),
+        'pecosa_inicial'           => \DB::table('pecosa_inicial')->count(),
+        'registros_asistencia'     => \DB::table('registros_asistencia')->count(),
+    ]);
+});
+
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
