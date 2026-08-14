@@ -22,67 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: replicar en Render los productos de Pecosa (no son datos
-// sensibles, a diferencia de alumnos) ya cargados en local. Protegido por
-// token, se elimina después de usarse.
-Route::get('/sync-pecosa/{token}', function (string $token) {
-    if (! hash_equals('c915077f3947122208ad4d186f639495467644d7aaf8fe12', $token)) {
-        abort(404);
-    }
-
-    $now = now();
-
-    $primaria = [
-        ['descripcion' => 'CONSERVA DE PESCADO 170G', 'unid' => 'LATA', 'presentacion' => 0.17, 'cant' => 1242, 'volumen' => 211.14],
-        ['descripcion' => 'CONSERVA DE POLLO 170G', 'unid' => 'LATA', 'presentacion' => 0.17, 'cant' => 1242, 'volumen' => 211.14],
-        ['descripcion' => 'PRODUCTO LACTEO RECONSTITUIDO', 'unid' => 'BOLSA', 'presentacion' => 0.39, 'cant' => 621, 'volumen' => 242.19],
-        ['descripcion' => 'ARROZ FORTIFICADO', 'unid' => 'BOLSA', 'presentacion' => 1.00, 'cant' => 621, 'volumen' => 621.00],
-        ['descripcion' => 'AVENA KIWICHA 250G', 'unid' => 'BOLSA', 'presentacion' => 0.25, 'cant' => 621, 'volumen' => 155.25],
-        ['descripcion' => 'AVENA QUINUA 250G', 'unid' => 'BOLSA', 'presentacion' => 0.25, 'cant' => 621, 'volumen' => 155.25],
-        ['descripcion' => 'ACEITE VEGETAL 200ML', 'unid' => 'BOTELLA', 'presentacion' => 0.20, 'cant' => 621, 'volumen' => 124.20],
-        ['descripcion' => 'AZUCAR 250G', 'unid' => 'BOLSA', 'presentacion' => 0.25, 'cant' => 621, 'volumen' => 155.25],
-    ];
-
-    $inicial = [
-        ['descripcion' => 'ACEITE VEGETAL COMESTIBLE', 'unid' => 'BOTELLA', 'presentacion' => 1, 'cant' => 10, 'volumen' => 10, 'marca' => 'SAO', 'lote' => '13/03/27'],
-        ['descripcion' => 'ARROZ FORTIFICADO', 'unid' => 'BOLSA', 'presentacion' => 1, 'cant' => 49, 'volumen' => 49, 'marca' => 'ESPIGA PIURANA', 'lote' => '0032026'],
-        ['descripcion' => 'CEREAL EXTRUIDO', 'unid' => 'BOLSA', 'presentacion' => 0.03, 'cant' => 970, 'volumen' => 29.1, 'marca' => 'AQUIMA', 'lote' => 'LT.05-2'],
-        ['descripcion' => 'CHOCOLATE PARA TAZA', 'unid' => 'BOLSA', 'presentacion' => 0.09, 'cant' => 33, 'volumen' => 2.97, 'marca' => 'B & H', 'lote' => '050126'],
-        ['descripcion' => 'CONSERVA DE PESCADO EN ACEITE VEGETAL', 'unid' => 'HOJALAT', 'presentacion' => 0.17, 'cant' => 286, 'volumen' => 48.62, 'marca' => 'LATINO', 'lote' => "GCRFBO1FP:31.07.2025FV:31.07.2029 / GCRFBO2FP:31.07.2025FV:31.07.2029"],
-        ['descripcion' => 'FRIJOL', 'unid' => 'BOLSA', 'presentacion' => 1, 'cant' => 20, 'volumen' => 20, 'marca' => 'SABORES DEL NORTE', 'lote' => '0012026'],
-        ['descripcion' => 'GALLETA KIWICHA', 'unid' => 'BOLSA', 'presentacion' => 0.03, 'cant' => 970, 'volumen' => 29.1, 'marca' => 'TASTY COOKIE', 'lote' => '02'],
-        ['descripcion' => 'HARINA DE PLATANO', 'unid' => 'BOLSA', 'presentacion' => 1, 'cant' => 9, 'volumen' => 9, 'marca' => 'VITALINKA', 'lote' => 'LT.04'],
-        ['descripcion' => 'HARINA INSTANTANEA/EXTRUIDA DE MAIZ AMILAC', 'unid' => 'BOLSA', 'presentacion' => 0.75, 'cant' => 12, 'volumen' => 9, 'marca' => 'VITALINKA', 'lote' => 'LT.03'],
-        ['descripcion' => 'HOJUELA PRECOCIDA DE AVENA CON KIWICHA', 'unid' => 'BOLSA', 'presentacion' => 1, 'cant' => 11, 'volumen' => 11, 'marca' => "SHAQ'UMA FOOD", 'lote' => 'LT.04'],
-        ['descripcion' => 'HOJUELA PRECOCIDA DE AVENA CON QUINUA', 'unid' => 'BOLSA', 'presentacion' => 1, 'cant' => 22, 'volumen' => 22, 'marca' => "SHAQ'UMA FOOD", 'lote' => 'LT.04'],
-        ['descripcion' => 'LENTEJA CALIDAD 2 - SUPERIOR', 'unid' => 'BOLSA', 'presentacion' => 1, 'cant' => 20, 'volumen' => 20, 'marca' => 'SABORES DEL NORTE', 'lote' => '0012026'],
-        ['descripcion' => 'PRODUCTO LACTEO RECONSTITUIDO', 'unid' => 'LATA', 'presentacion' => 0.39, 'cant' => 324, 'volumen' => 126.36, 'marca' => 'GLORIA', 'lote' => '035/036'],
-        ['descripcion' => 'AZUCAR RUBIA DOMESTICA', 'unid' => 'BOLSA', 'presentacion' => 1, 'cant' => 25, 'volumen' => 25, 'marca' => 'DULCE MAS', 'lote' => '0012026'],
-        ['descripcion' => 'GALLETA QUINUA', 'unid' => 'BOLSA', 'presentacion' => 0.03, 'cant' => 970, 'volumen' => 29.1, 'marca' => 'TASTY COOKIE', 'lote' => '02/03'],
-    ];
-
-    \DB::table('pecosa_primaria')->delete();
-    foreach ($primaria as $p) {
-        $p['stock_actual'] = $p['volumen'];
-        $p['created_at'] = $now;
-        $p['updated_at'] = $now;
-        \DB::table('pecosa_primaria')->insert($p);
-    }
-
-    \DB::table('pecosa_inicial')->delete();
-    foreach ($inicial as $p) {
-        $p['stock_actual'] = $p['volumen'];
-        $p['created_at'] = $now;
-        $p['updated_at'] = $now;
-        \DB::table('pecosa_inicial')->insert($p);
-    }
-
-    return response()->json([
-        'pecosa_primaria_insertados' => count($primaria),
-        'pecosa_inicial_insertados'  => count($inicial),
-    ]);
-});
-
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
