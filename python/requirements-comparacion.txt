@@ -1,0 +1,10 @@
+# Dependencias adicionales SOLO para python/comparar_algoritmos.py
+# (comparación Random Forest vs XGBoost vs LSTM que respalda la selección
+# metodológica del algoritmo final en la tesis). NO se instala en
+# producción/Render (ver requirements.txt para eso). El LSTM está
+# implementado desde cero con numpy (sin TensorFlow), así que la única
+# dependencia extra real es xgboost.
+#
+# Uso: pip install -r requirements-comparacion.txt
+
+xgboost>=2.0
