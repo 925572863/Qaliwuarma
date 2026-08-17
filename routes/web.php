@@ -22,6 +22,21 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// TEMPORAL: verificar conteos finales en Render vs local (solo lectura).
+// Protegido por token, se elimina despues de usarse.
+Route::get('/check-final/{token}', function (string $token) {
+    if (! hash_equals('3eb73ff209019ac86710094b35cb74f9b706a095bed6c606', $token)) {
+        abort(404);
+    }
+    return response()->json([
+        'alumnos'                    => \DB::table('alumnos')->count(),
+        'pecosa_inicial'              => \DB::table('pecosa_inicial')->count(),
+        'pecosa_primaria'             => \DB::table('pecosa_primaria')->count(),
+        'registros_asistencia'        => \DB::table('registros_asistencia')->count(),
+        'ia_modelos_binarios'         => \DB::table('ia_modelos_binarios')->count(),
+    ]);
+});
+
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
