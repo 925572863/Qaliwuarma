@@ -150,4 +150,40 @@ class AlumnoControllerTest extends TestCase
 
         $response->assertOk();
     }
+
+    /**
+     * Reproduce el bug reportado: un padrón nominal (ej. exportado de
+     * SIAGIE) trae una columna "Situación Final" indicando qué alumnos
+     * fueron trasladados/retirados. El importador debía respetarla en vez
+     * de marcar a todos como 'activo', que inflaba el conteo de matrícula
+     * (usado en Prorrateo) con alumnos que ya no asisten.
+     */
+    public function test_importar_primaria_respeta_la_situacion_final_del_padron(): void
+    {
+        $user = User::factory()->create();
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('1° A');
+        $sheet->fromArray([
+            ['Apellido Paterno', 'Apellido Materno', 'Nombres', 'Situación Final'],
+            ['Perez', 'Lopez', 'Juan', 'Matriculado'],
+            ['Garcia', 'Ruiz', 'Maria', 'Trasladado'],
+            ['Torres', 'Diaz', 'Luis', 'Retirado'],
+        ]);
+        $ruta = tempnam(sys_get_temp_dir(), 'padron') . '.xlsx';
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($ruta);
+        $archivo = new \Illuminate\Http\UploadedFile($ruta, 'padron.xlsx', null, null, true);
+
+        $this->actingAs($user)->post(route('alumnos.importar-primaria'), [
+            'archivos' => [$archivo],
+        ]);
+
+        $this->assertDatabaseHas('alumnos', ['apellido_paterno' => 'PEREZ', 'estado' => 'activo']);
+        $this->assertDatabaseHas('alumnos', ['apellido_paterno' => 'GARCIA', 'estado' => 'baja']);
+        $this->assertDatabaseHas('alumnos', ['apellido_paterno' => 'TORRES', 'estado' => 'baja']);
+
+        // El trasladado/retirado no debe contarse como matrícula activa
+        $this->assertSame(1, Alumno::where('nivel', 'primaria')->where('estado', 'activo')->count());
+    }
 }

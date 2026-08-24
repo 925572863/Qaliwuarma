@@ -220,6 +220,7 @@ class AlumnoController extends Controller
         $colFec = $this->findCol($normH, ['fecha_nacimiento','fecha_nac','f_nacimiento','nacimiento','fec_nac','fecha_de_nacimiento']);
         $colSex = $this->findCol($normH, ['sexo','genero','sex']);
         $colSec = $this->findCol($normH, ['seccion','aula','grado_seccion','clase']);
+        $colSit = $this->findCol($normH, ['situacion_final','situacion','condicion','estado_matricula','estado']);
 
         $seccionActual = $seccionTitulo;
 
@@ -281,7 +282,7 @@ class AlumnoController extends Controller
                 'carrera'           => $seccion,
                 'semestre'          => 1,
                 'fecha_inscripcion' => now()->toDateString(),
-                'estado'            => 'activo',
+                'estado'            => $this->parseEstadoAlumno($colSit !== null ? ($row[$colSit] ?? null) : null),
             ];
         }
     }
@@ -426,7 +427,7 @@ class AlumnoController extends Controller
         // Detectar sección desde el nombre de la pestaña (ej: "1° A", "2do B", "3er grado C")
         $seccionDeHoja = '';
         $normHoja = $this->normalizeText($sheet->getTitle());
-        if (preg_match('/(\d+)[°º]?\s*(?:er|do|ro|to|vo)?\s*(?:grado)?\s*[-\s]*([a-z])\b/i', $normHoja, $mh)) {
+        if (preg_match('/(\d+)[°º]?\s*(?:er|do|ro|to|vo)?\s*(?:grado)?\s*[-\s]*([a-z])\b/iu', $normHoja, $mh)) {
             $seccionDeHoja = $mh[1] . '° ' . strtoupper($mh[2]);
         }
 
@@ -468,6 +469,7 @@ class AlumnoController extends Controller
         $colFec = $this->findCol($normH, ['fecha_nacimiento','fecha_nac','f_nacimiento','nacimiento','fec_nac']);
         $colSex = $this->findCol($normH, ['sexo','genero','sex']);
         $colSec = $this->findCol($normH, ['seccion','aula','grado_seccion','clase']);
+        $colSit = $this->findCol($normH, ['situacion_final','situacion','condicion','estado_matricula','estado']);
 
         $seccionActual = $seccionTitulo;
 
@@ -534,7 +536,7 @@ class AlumnoController extends Controller
                 'carrera'           => $seccion,
                 'semestre'          => $gradoNum,
                 'fecha_inscripcion' => now()->toDateString(),
-                'estado'            => 'activo',
+                'estado'            => $this->parseEstadoAlumno($colSit !== null ? ($row[$colSit] ?? null) : null),
             ];
         }
     }
@@ -542,7 +544,7 @@ class AlumnoController extends Controller
     private function detectarSeccionPrimaria(string $norm, string $seccionActual): ?string
     {
         // Detecta: "1° A", "2do grado B", "3er grado seccion C"
-        if (preg_match('/(\d+)[°º]?\s*(?:er|do|ro|to|vo)?\s*(?:grado)?\s*[-\s]*([a-z])\b/i', $norm, $m)) {
+        if (preg_match('/(\d+)[°º]?\s*(?:er|do|ro|to|vo)?\s*(?:grado)?\s*[-\s]*([a-z])\b/iu', $norm, $m)) {
             return $m[1] . '° ' . strtoupper($m[2]);
         }
         if (preg_match('/(?:seccion|aula)\s*:?\s*([a-z])\b/i', $norm, $m) &&
@@ -599,6 +601,31 @@ class AlumnoController extends Controller
         if (in_array($v, ['M', 'MASCULINO', 'H', 'HOMBRE', 'VARON', 'VARÓN'])) return 'M';
         if (in_array($v, ['F', 'FEMENINO', 'MUJER'])) return 'F';
         return null;
+    }
+
+    /**
+     * Interpreta la columna de "Situación Final" / "Condición" que traen los
+     * padrones nominales (ej. exportados de SIAGIE): un alumno trasladado,
+     * retirado o dado de baja NO debe contarse como matrícula activa. Antes
+     * de este fix, el importador ignoraba esta columna por completo y
+     * marcaba a todos como 'activo', inflando el conteo de alumnos (usado
+     * en Prorrateo y en los reportes de matrícula) con alumnos que ya no
+     * asisten a la institución.
+     */
+    private function parseEstadoAlumno($val): string
+    {
+        if ($val === null || trim((string)$val) === '') return 'activo';
+
+        $v = $this->normalizeText((string)$val);
+
+        if (str_contains($v, 'traslad')) return 'baja';       // "Trasladado", "Se traslada"
+        if (str_contains($v, 'retir'))   return 'baja';       // "Retirado", "Se retira"
+        if (str_contains($v, 'baja'))    return 'baja';
+        if (str_contains($v, 'fallec'))  return 'baja';       // "Fallecido"
+        if (str_contains($v, 'egres'))   return 'egresado';   // "Egresado"
+        if (str_contains($v, 'matricul') || str_contains($v, 'activ')) return 'activo';
+
+        return 'activo'; // valor desconocido: se asume activo, comportamiento previo por defecto
     }
 
     private function parseFecha($val): ?string
