@@ -22,26 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: probar el export CSV directo, sin auth, para diagnosticar
-// reportes de descarga en blanco. Protegido por token, se elimina despues.
-Route::get('/test-export/{token}', function (string $token) {
-    if (! hash_equals('625ddaee583772e1833cb49e4393dc7b54a038ce9e8a8195', $token)) {
-        abort(404);
-    }
-    $ctrl = new \App\Http\Controllers\ExportController();
-    $streamed = $ctrl->raciones();
-
-    ob_start();
-    $streamed->sendContent();
-    $contenido = ob_get_clean();
-
-    return response()->json([
-        'bytes'          => strlen($contenido),
-        'primeras_lineas' => array_slice(explode("\n", $contenido), 0, 5),
-        'headers'        => $streamed->headers->all(),
-    ]);
-});
-
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
