@@ -58,7 +58,7 @@ PROMPT;
             'Authorization' => 'Bearer ' . $this->apiKey,
             'Content-Type'  => 'application/json',
         ])->post($this->endpoint, [
-            'model'       => 'llama-3.1-8b-instant',
+            'model'       => 'openai/gpt-oss-20b',
             'messages'    => [
                 ['role' => 'user', 'content' => $prompt],
             ],
