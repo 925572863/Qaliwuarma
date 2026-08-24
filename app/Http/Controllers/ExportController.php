@@ -8,7 +8,7 @@ use App\Models\ControlNutricional;
 use App\Models\IaEntrenamiento;
 use App\Models\RegistroAsistencia;
 use App\Support\Stats;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Exportadores CSV de las fichas de recolección de datos (Anexo 2 de la tesis),
@@ -19,27 +19,39 @@ class ExportController extends Controller
 {
     use CalculaContextoDiario;
 
-    private function csvResponse(string $nombreArchivo, array $encabezados, iterable $filas): StreamedResponse
+    /**
+     * Construye el CSV completo en memoria y lo devuelve como respuesta normal
+     * (no streaming). El streaming (fputcsv sobre php://output pedazo por
+     * pedazo) no llega completo al navegador cuando pasa por el proxy de
+     * Render/Cloudflare junto con el servidor de desarrollo de Laravel
+     * (php artisan serve): la pestaña se abre en blanco en vez de descargar
+     * el archivo. Construir el contenido de una vez y enviarlo con
+     * Content-Length explícito evita depender de que el streaming funcione
+     * bien a través de ese proxy.
+     */
+    private function csvResponse(string $nombreArchivo, array $encabezados, iterable $filas): Response
     {
-        $callback = function () use ($encabezados, $filas) {
-            $handle = fopen('php://output', 'w');
-            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8 para Excel
-            fputcsv($handle, $encabezados, ';');
-            foreach ($filas as $fila) {
-                fputcsv($handle, $fila, ';');
-            }
-            fclose($handle);
-        };
+        $handle = fopen('php://temp', 'r+');
+        fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8 para Excel
+        fputcsv($handle, $encabezados, ';');
+        foreach ($filas as $fila) {
+            fputcsv($handle, $fila, ';');
+        }
+        rewind($handle);
+        $contenido = stream_get_contents($handle);
+        fclose($handle);
 
-        return response()->streamDownload($callback, $nombreArchivo, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
+        return response($contenido, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$nombreArchivo.'"',
+            'Content-Length'      => strlen($contenido),
         ]);
     }
 
     /**
      * Ficha 4 — Estimación de la demanda de raciones.
      */
-    public function raciones(): StreamedResponse
+    public function raciones(): Response
     {
         $encabezados = ['fecha', 'nivel', 'fase', 'grado', 'seccion', 'raciones_planificadas', 'raciones_consumidas', 'desviacion', 'condicion_climatica', 'evento_especial'];
 
@@ -62,7 +74,7 @@ class ExportController extends Controller
     /**
      * Ficha 5 — Precisión en el cálculo de raciones nutricionales.
      */
-    public function nutricional(): StreamedResponse
+    public function nutricional(): Response
     {
         $encabezados = ['fecha', 'nivel', 'fase', 'menu_dia', 'gramos_planificados', 'gramos_servidos', 'diferencia', 'cumple_requerimiento'];
 
@@ -83,7 +95,7 @@ class ExportController extends Controller
     /**
      * Ficha 6 — Eficiencia en la distribución y control del desperdicio.
      */
-    public function distribucion(): StreamedResponse
+    public function distribucion(): Response
     {
         $encabezados = ['fecha', 'nivel', 'fase', 'kg_desperdiciados', 'kg_distribuidos', 'indice_mermas_pct', 'tiempo_distribucion_min'];
 
@@ -103,7 +115,7 @@ class ExportController extends Controller
     /**
      * Fichas 1, 2 y 3 — Preprocesamiento, entrenamiento/validación y arquitectura del modelo.
      */
-    public function iaEntrenamientos(): StreamedResponse
+    public function iaEntrenamientos(): Response
     {
         $encabezados = [
             'fecha', 'nivel', 'fase', 'pct_depurados', 'pct_completos',
@@ -156,7 +168,7 @@ class ExportController extends Controller
      * Comparativo pareado — Hipótesis específica 1: error de estimación de
      * raciones (|RP - RC|) antes y después de la implementación del modelo.
      */
-    public function comparativoRaciones(): StreamedResponse
+    public function comparativoRaciones(): Response
     {
         $valores = fn (string $fase) => RegistroAsistencia::where('fase', $fase)
             ->whereNotNull('raciones_planificadas')
@@ -179,7 +191,7 @@ class ExportController extends Controller
      * raciones nutricionales, medido como el error absoluto en gramos
      * (|planificado - servido|; a menor valor, mayor cumplimiento).
      */
-    public function comparativoNutricional(): StreamedResponse
+    public function comparativoNutricional(): Response
     {
         $valores = fn (string $fase) => ControlNutricional::where('fase', $fase)
             ->orderBy('fecha')
@@ -200,7 +212,7 @@ class ExportController extends Controller
      * Comparativo pareado — Hipótesis específica 4: eficiencia de distribución,
      * componente de desperdicio (índice de mermas, %).
      */
-    public function comparativoMermas(): StreamedResponse
+    public function comparativoMermas(): Response
     {
         $valores = fn (string $fase) => ControlDistribucion::where('fase', $fase)
             ->orderBy('fecha')
@@ -221,7 +233,7 @@ class ExportController extends Controller
      * Comparativo pareado — Hipótesis específica 4: eficiencia de distribución,
      * componente de tiempo de distribución (minutos).
      */
-    public function comparativoTiempoDistribucion(): StreamedResponse
+    public function comparativoTiempoDistribucion(): Response
     {
         $valores = fn (string $fase) => ControlDistribucion::where('fase', $fase)
             ->orderBy('fecha')
@@ -243,7 +255,7 @@ class ExportController extends Controller
      * el reporte visual en /analisis-contexto con un CSV listo para el anexo
      * de resultados de la tesis.
      */
-    public function contexto(): StreamedResponse
+    public function contexto(): Response
     {
         $encabezados = ['nivel', 'variable', 'categoria', 'promedio_raciones_dia', 'n', 't', 'df', 'p', 'significativo'];
         $filas = [];
