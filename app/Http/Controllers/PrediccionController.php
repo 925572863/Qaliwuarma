@@ -319,10 +319,10 @@ PROMPT;
                         'Authorization' => 'Bearer ' . config('services.groq.key'),
                         'Content-Type'  => 'application/json',
                     ])->post('https://api.groq.com/openai/v1/chat/completions', [
-                        'model'       => 'llama-3.1-8b-instant',
+                        'model'       => 'openai/gpt-oss-20b',
                         'messages'    => [['role' => 'user', 'content' => $prompt]],
                         'temperature' => 0.2,
-                        'max_tokens'  => 1500,
+                        'max_tokens'  => 3000,
                     ]);
 
                     if ($response->successful()) {
@@ -430,10 +430,10 @@ PROMPT;
                 'Authorization' => 'Bearer ' . config('services.groq.key'),
                 'Content-Type'  => 'application/json',
             ])->post('https://api.groq.com/openai/v1/chat/completions', [
-                'model'       => 'llama-3.1-8b-instant',
+                'model'       => 'openai/gpt-oss-20b',
                 'messages'    => [['role' => 'user', 'content' => $prompt]],
                 'temperature' => 0.3,
-                'max_tokens'  => 500,
+                'max_tokens'  => 1500,
             ]);
 
             if (!$response->successful()) {
