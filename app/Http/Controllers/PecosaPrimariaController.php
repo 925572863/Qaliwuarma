@@ -24,7 +24,13 @@ class PecosaPrimariaController extends Controller
 
         $items = $query->orderBy('descripcion')->paginate(20)->withQueryString();
 
-        return view('pecosa.primaria.index', compact('items'));
+        // Totales generales (sin paginar, sobre todos los productos registrados,
+        // no solo los de la pagina actual ni los filtrados por la busqueda).
+        $totalProductos     = PecosaPrimaria::count();
+        $totalProductosUnicos = PecosaPrimaria::distinct()->count('descripcion');
+        $totalUnidades      = PecosaPrimaria::sum('cant');
+
+        return view('pecosa.primaria.index', compact('items', 'totalProductos', 'totalProductosUnicos', 'totalUnidades'));
     }
 
     public function create()

@@ -88,6 +88,22 @@
 
 @section('content')
 
+{{-- Totales --}}
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <p class="text-xs text-gray-400 uppercase tracking-wide font-medium">Filas registradas</p>
+        <p class="text-2xl font-bold text-gray-800 mt-1">{{ $totalProductos }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <p class="text-xs text-gray-400 uppercase tracking-wide font-medium">Productos distintos</p>
+        <p class="text-2xl font-bold text-gray-800 mt-1">{{ $totalProductosUnicos }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <p class="text-xs text-gray-400 uppercase tracking-wide font-medium">Total de unidades (cant.)</p>
+        <p class="text-2xl font-bold text-gray-800 mt-1">{{ number_format($totalUnidades) }}</p>
+    </div>
+</div>
+
 {{-- Buscador --}}
 <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-5">
     <form method="GET" action="{{ route('pecosa.primaria.index') }}" class="flex gap-3">
