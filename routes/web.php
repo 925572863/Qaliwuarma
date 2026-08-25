@@ -22,21 +22,16 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: ver fechas de creacion agrupadas para separar la Pecosa nueva
-// (subida hoy) de la Pecosa Antigua (etiquetada por error junto con ella).
-Route::get('/diag-fechas-pecosa/{token}', function (string $token) {
+// TEMPORAL: corrige la etiqueta mal puesta en Pecosa Primaria (no habia
+// nada "antiguo" con que mezclarse, la tabla se habia vaciado antes).
+Route::get('/renombrar-pecosa-primaria/{token}', function (string $token) {
     if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
         abort(404);
     }
-    $resultado = [];
-    foreach (['pecosa_inicial', 'pecosa_primaria'] as $tabla) {
-        $resultado[$tabla] = \Illuminate\Support\Facades\DB::table($tabla)
-            ->selectRaw('nombre_pecosa, DATE(created_at) as fecha, COUNT(*) as cantidad')
-            ->groupBy('nombre_pecosa', \Illuminate\Support\Facades\DB::raw('DATE(created_at)'))
-            ->orderByDesc('fecha')
-            ->get();
-    }
-    return response()->json($resultado);
+    $actualizados = \Illuminate\Support\Facades\DB::table('pecosa_primaria')
+        ->where('nombre_pecosa', 'Pecosa Antigua')
+        ->update(['nombre_pecosa' => 'Pecosa 1']);
+    return response()->json(['actualizados' => $actualizados]);
 });
 
 // Exportar datos temporalmente (solo para migración)
