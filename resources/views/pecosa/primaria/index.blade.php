@@ -13,6 +13,15 @@
             </svg>
             <span>Importar Excel</span>
         </button>
+        {{-- Subir Foto (IA) --}}
+        <button type="button" onclick="document.getElementById('modal-foto-primaria').classList.remove('hidden')"
+                class="inline-flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <span>Subir Foto</span>
+        </button>
         <a href="{{ route('pecosa.primaria.create') }}"
            class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,6 +53,32 @@
                     <button type="submit"
                             class="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-bold">
                         Importar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Modal subir foto (IA) --}}
+    <div id="modal-foto-primaria" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+            <h3 class="text-base font-bold text-gray-800 mb-1">Subir foto de la Pecosa</h3>
+            <p class="text-xs text-gray-500 mb-4">Toma una foto clara y bien iluminada de la planilla de productos. La IA leerá los datos automáticamente — revísalos después, puede equivocarse.</p>
+            <form method="POST" action="{{ route('pecosa.primaria.importar-foto') }}" enctype="multipart/form-data">
+                @csrf
+                <div class="mb-4">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Foto de la Pecosa</label>
+                    <input type="file" name="foto" accept="image/*" capture="environment" required
+                           class="w-full text-sm text-gray-600 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                </div>
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="document.getElementById('modal-foto-primaria').classList.add('hidden')"
+                            class="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50">
+                        Cancelar
+                    </button>
+                    <button type="submit"
+                            class="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-bold">
+                        Analizar foto
                     </button>
                 </div>
             </form>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PecosaPrimaria;
+use App\Services\GeminiVisionService;
 use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -181,6 +182,64 @@ class PecosaPrimariaController extends Controller
 
         } catch (\Exception $e) {
             return back()->with('error', 'Error al leer el archivo: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Igual que importar(), pero en vez de leer un Excel, lee los productos
+     * de una foto de la Pecosa usando IA con visión (Gemini).
+     */
+    public function importarFoto(Request $request)
+    {
+        $request->validate([
+            'foto' => 'required|image|max:8192',
+        ]);
+
+        try {
+            $vision = new GeminiVisionService();
+            if (!$vision->configurado()) {
+                return back()->with('error', 'La lectura de fotos con IA aún no está configurada en el servidor.');
+            }
+
+            $productos = $vision->extraerProductosDeImagen($request->file('foto')->getPathname());
+
+            if (empty($productos)) {
+                return back()->with('error', 'No se reconoció ningún producto en la foto. Intenta con una foto más clara y bien iluminada.');
+            }
+
+            $now     = now();
+            $nuevos  = 0;
+            $sumados = 0;
+
+            foreach ($productos as $p) {
+                if ($this->sumarSiYaExiste('pecosa_primaria', $p['descripcion'], $p['marca'], $p['lote'], $p['cant'], $p['presentacion'], $now)) {
+                    $sumados++;
+                } else {
+                    $volumen = round($p['cant'] * $p['presentacion'], 3);
+                    \Illuminate\Support\Facades\DB::table('pecosa_primaria')->insert([
+                        'cant'         => $p['cant'],
+                        'unid'         => $p['unid'],
+                        'descripcion'  => $p['descripcion'],
+                        'marca'        => $p['marca'],
+                        'presentacion' => $p['presentacion'],
+                        'volumen'      => $volumen,
+                        'stock_actual' => $volumen,
+                        'lote'         => $p['lote'],
+                        'created_at'   => $now,
+                        'updated_at'   => $now,
+                    ]);
+                    $nuevos++;
+                }
+            }
+
+            $msg = "{$nuevos} producto(s) reconocido(s) e importado(s) desde la foto.";
+            if ($sumados > 0) $msg .= " {$sumados} ya existían y se sumó la cantidad.";
+            $msg .= ' Revisa los datos por si la IA se equivocó en algo.';
+
+            return redirect()->route('pecosa.primaria.index')->with('success', $msg);
+
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
         }
     }
 

@@ -74,6 +74,7 @@ Route::middleware(['auth', 'throttle:120,1'])->group(function () {
         // Lista de compras adicionales
         Route::get('/plantilla', [PecosaInicialController::class, 'plantilla'])->name('plantilla');
         Route::post('/importar', [PecosaInicialController::class, 'importar'])->name('importar')->middleware('throttle:10,1');
+        Route::post('/importar-foto', [PecosaInicialController::class, 'importarFoto'])->name('importar-foto')->middleware('throttle:10,1');
         Route::post('/nutricion', [PecosaInicialController::class, 'nutricion'])->name('nutricion');
 
         Route::get('/compras',                        [ComprasAdicionalesController::class, 'index'])->name('compras');
@@ -125,6 +126,7 @@ Route::middleware(['auth', 'throttle:120,1'])->group(function () {
         Route::get('/distribuciones/{version}/listado/{seccion}',  [\App\Http\Controllers\ProrrateoController::class, 'listadoAula'])->name('distribuciones.listado');
         Route::post('/distribuciones/importar',                    [\App\Http\Controllers\ProrrateoController::class, 'importarExcel'])->name('distribuciones.importar')->middleware('throttle:10,1');
         Route::post('/importar',           [PecosaPrimariaController::class, 'importar'])->name('importar')->middleware('throttle:10,1');
+        Route::post('/importar-foto',      [PecosaPrimariaController::class, 'importarFoto'])->name('importar-foto')->middleware('throttle:10,1');
         Route::get('/crear',               [\App\Http\Controllers\PecosaPrimariaController::class, 'create'])->name('create');
         Route::post('/',                   [PecosaPrimariaController::class, 'store'])->name('store');
         Route::get('/{primarium}/editar',  [PecosaPrimariaController::class, 'edit'])->name('edit');
