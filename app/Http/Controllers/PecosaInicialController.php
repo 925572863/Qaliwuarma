@@ -21,8 +21,13 @@ class PecosaInicialController extends Controller
             $query->where(function ($q) use ($b) {
                 $q->where('descripcion', 'like', "%{$b}%")
                   ->orWhere('marca', 'like', "%{$b}%")
-                  ->orWhere('lote', 'like', "%{$b}%");
+                  ->orWhere('lote', 'like', "%{$b}%")
+                  ->orWhere('nombre_pecosa', 'like', "%{$b}%");
             });
+        }
+
+        if ($request->filled('pecosa')) {
+            $query->where('nombre_pecosa', $request->input('pecosa'));
         }
 
         $items = $query->orderBy('descripcion')->paginate(20)->withQueryString();
@@ -33,7 +38,13 @@ class PecosaInicialController extends Controller
         $totalProductosUnicos = PecosaInicial::distinct()->count('descripcion');
         $totalUnidades        = PecosaInicial::sum('cant');
 
-        return view('pecosa.inicial.index', compact('items', 'totalProductos', 'totalProductosUnicos', 'totalUnidades'));
+        // Lista de Pecosas distintas ya subidas, para el filtro.
+        $pecosasSubidas = PecosaInicial::whereNotNull('nombre_pecosa')
+            ->distinct()->orderByDesc('fecha_entrega')->pluck('nombre_pecosa');
+
+        return view('pecosa.inicial.index', compact(
+            'items', 'totalProductos', 'totalProductosUnicos', 'totalUnidades', 'pecosasSubidas'
+        ));
     }
 
     public function create()
@@ -44,6 +55,8 @@ class PecosaInicialController extends Controller
     public function store(Request $request)
     {
         $request->validate([
+            'nombre_pecosa'        => 'nullable|string|max:150',
+            'fecha_entrega'        => 'nullable|date',
             'filas.*.cant'         => 'required|integer|min:1',
             'filas.*.unid'         => 'required|string|max:20',
             'filas.*.descripcion'  => 'required|string|max:300',
@@ -53,9 +66,11 @@ class PecosaInicialController extends Controller
             'filas.*.fecha_vencimiento' => 'nullable|date',
         ]);
 
-        $filas  = $request->input('filas', []);
-        $now    = now();
-        $nuevos = 0;
+        $filas        = $request->input('filas', []);
+        $nombrePecosa = $request->input('nombre_pecosa') ?: null;
+        $fechaEntrega = $request->input('fecha_entrega') ?: null;
+        $now     = now();
+        $nuevos  = 0;
         $sumados = 0;
 
         foreach ($filas as $fila) {
@@ -69,10 +84,12 @@ class PecosaInicialController extends Controller
             $lote         = isset($fila['lote']) && $fila['lote'] !== '' ? $fila['lote'] : null;
             $fechaVenc    = isset($fila['fecha_vencimiento']) && $fila['fecha_vencimiento'] !== '' ? $fila['fecha_vencimiento'] : null;
 
-            if ($this->sumarSiYaExiste('pecosa_inicial', $descripcion, $marca, $lote, $cant, $presentacion, $now)) {
+            if ($this->sumarSiYaExiste('pecosa_inicial', $descripcion, $marca, $lote, $nombrePecosa, $cant, $presentacion, $now)) {
                 $sumados++;
             } else {
                 \Illuminate\Support\Facades\DB::table('pecosa_inicial')->insert([
+                    'nombre_pecosa'     => $nombrePecosa,
+                    'fecha_entrega'     => $fechaEntrega,
                     'cant'              => $cant,
                     'unid'              => $unid,
                     'descripcion'       => $descripcion,
@@ -103,6 +120,8 @@ class PecosaInicialController extends Controller
     public function update(Request $request, PecosaInicial $inicial)
     {
         $data = $request->validate([
+            'nombre_pecosa' => 'nullable|string|max:150',
+            'fecha_entrega' => 'nullable|date',
             'cant'         => 'required|integer|min:1',
             'unid'         => 'required|string|max:20',
             'descripcion'  => 'required|string|max:300',
@@ -195,7 +214,9 @@ class PecosaInicialController extends Controller
     public function importar(Request $request)
     {
         $request->validate([
-            'archivo' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+            'archivo'       => 'required|file|mimes:xlsx,xls,csv|max:5120',
+            'nombre_pecosa' => 'nullable|string|max:150',
+            'fecha_entrega' => 'nullable|date',
         ]);
 
         try {
@@ -203,6 +224,8 @@ class PecosaInicialController extends Controller
             $hoja        = $spreadsheet->getActiveSheet();
             $filas       = $hoja->toArray(null, true, true, false);
 
+            $nombrePecosa = $request->input('nombre_pecosa') ?: null;
+            $fechaEntrega = $request->input('fecha_entrega') ?: null;
             $now     = now();
             $errores = [];
             $nuevos  = 0;
@@ -224,10 +247,12 @@ class PecosaInicialController extends Controller
                     continue;
                 }
 
-                if ($this->sumarSiYaExiste('pecosa_inicial', $descripcion, $marca, $lote, $cant, $presentacion, $now)) {
+                if ($this->sumarSiYaExiste('pecosa_inicial', $descripcion, $marca, $lote, $nombrePecosa, $cant, $presentacion, $now)) {
                     $sumados++;
                 } else {
                     \Illuminate\Support\Facades\DB::table('pecosa_inicial')->insert([
+                        'nombre_pecosa' => $nombrePecosa,
+                        'fecha_entrega' => $fechaEntrega,
                         'cant'         => $cant,
                         'unid'         => $unid,
                         'descripcion'  => $descripcion,
@@ -244,7 +269,7 @@ class PecosaInicialController extends Controller
             }
 
             $msg = "{$nuevos} producto(s) importado(s).";
-            if ($sumados > 0) $msg .= " {$sumados} ya existían (mismo producto/marca/lote) y se sumó la cantidad, sin duplicar.";
+            if ($sumados > 0) $msg .= " {$sumados} ya existían (mismo producto/marca/lote/pecosa) y se sumó la cantidad, sin duplicar.";
             if (!empty($errores)) {
                 $msg .= ' ' . count($errores) . ' fila(s) con error ignoradas.';
             }
@@ -263,7 +288,9 @@ class PecosaInicialController extends Controller
     public function importarFoto(Request $request)
     {
         $request->validate([
-            'foto' => 'required|image|max:8192',
+            'foto'          => 'required|image|max:8192',
+            'nombre_pecosa' => 'nullable|string|max:150',
+            'fecha_entrega' => 'nullable|date',
         ]);
 
         try {
@@ -278,15 +305,19 @@ class PecosaInicialController extends Controller
                 return back()->with('error', 'No se reconoció ningún producto en la foto. Intenta con una foto más clara y bien iluminada.');
             }
 
+            $nombrePecosa = $request->input('nombre_pecosa') ?: null;
+            $fechaEntrega = $request->input('fecha_entrega') ?: null;
             $now     = now();
             $nuevos  = 0;
             $sumados = 0;
 
             foreach ($productos as $p) {
-                if ($this->sumarSiYaExiste('pecosa_inicial', $p['descripcion'], $p['marca'], $p['lote'], $p['cant'], $p['presentacion'], $now)) {
+                if ($this->sumarSiYaExiste('pecosa_inicial', $p['descripcion'], $p['marca'], $p['lote'], $nombrePecosa, $p['cant'], $p['presentacion'], $now)) {
                     $sumados++;
                 } else {
                     \Illuminate\Support\Facades\DB::table('pecosa_inicial')->insert([
+                        'nombre_pecosa' => $nombrePecosa,
+                        'fecha_entrega' => $fechaEntrega,
                         'cant'         => $p['cant'],
                         'unid'         => $p['unid'],
                         'descripcion'  => $p['descripcion'],
@@ -314,12 +345,14 @@ class PecosaInicialController extends Controller
     }
 
     /**
-     * Evita duplicar un producto que ya existe (mismo descripcion+marca+lote):
-     * en vez de insertar una fila nueva, suma la cantidad al registro
-     * existente (cant, volumen y stock_actual). Devuelve true si sumó a uno
+     * Evita duplicar un producto que ya existe (mismo descripcion+marca+lote+
+     * nombre_pecosa): en vez de insertar una fila nueva, suma la cantidad al
+     * registro existente (cant, volumen y stock_actual). El nombre de la
+     * Pecosa entra en la comparación para que subir una Pecosa nueva nunca se
+     * mezcle con una anterior de nombre distinto. Devuelve true si sumó a uno
      * existente, false si no encontró coincidencia (debe insertarse aparte).
      */
-    private function sumarSiYaExiste(string $tabla, string $descripcion, ?string $marca, ?string $lote, int $cant, float $presentacion, $now): bool
+    private function sumarSiYaExiste(string $tabla, string $descripcion, ?string $marca, ?string $lote, ?string $nombrePecosa, int $cant, float $presentacion, $now): bool
     {
         $existente = \Illuminate\Support\Facades\DB::table($tabla)
             ->where('descripcion', $descripcion)
@@ -328,6 +361,9 @@ class PecosaInicialController extends Controller
             })
             ->where(function ($q) use ($lote) {
                 $lote === null ? $q->whereNull('lote') : $q->where('lote', $lote);
+            })
+            ->where(function ($q) use ($nombrePecosa) {
+                $nombrePecosa === null ? $q->whereNull('nombre_pecosa') : $q->where('nombre_pecosa', $nombrePecosa);
             })
             ->first();
 

@@ -41,6 +41,17 @@
             <form method="POST" action="{{ route('pecosa.primaria.importar') }}" enctype="multipart/form-data">
                 @csrf
                 <div class="mb-4">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Nombre de esta Pecosa (opcional)</label>
+                    <input type="text" name="nombre_pecosa" placeholder="Ej: Pecosa N° 324426"
+                           class="w-full text-sm text-gray-600 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <p class="text-[11px] text-gray-400 mt-1">Ponle un nombre distinto a cada Pecosa que subas para que no se mezclen entre sí.</p>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Fecha de entrega del producto (opcional)</label>
+                    <input type="date" name="fecha_entrega"
+                           class="w-full text-sm text-gray-600 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+                <div class="mb-4">
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Archivo Excel (.xlsx, .xls)</label>
                     <input type="file" name="archivo" accept=".xlsx,.xls,.csv" required
                            class="w-full text-sm text-gray-600 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500">
@@ -66,6 +77,17 @@
             <p class="text-xs text-gray-500 mb-4">Toma una foto clara y bien iluminada de la planilla de productos. La IA leerá los datos automáticamente — revísalos después, puede equivocarse.</p>
             <form method="POST" action="{{ route('pecosa.primaria.importar-foto') }}" enctype="multipart/form-data">
                 @csrf
+                <div class="mb-4">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Nombre de esta Pecosa (opcional)</label>
+                    <input type="text" name="nombre_pecosa" placeholder="Ej: Pecosa N° 324426"
+                           class="w-full text-sm text-gray-600 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <p class="text-[11px] text-gray-400 mt-1">Ponle un nombre distinto a cada Pecosa que subas para que no se mezclen entre sí.</p>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Fecha de entrega del producto (opcional)</label>
+                    <input type="date" name="fecha_entrega"
+                           class="w-full text-sm text-gray-600 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                </div>
                 <div class="mb-4">
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Foto de la Pecosa</label>
                     <input type="file" name="foto" accept="image/*" capture="environment" required
@@ -117,11 +139,20 @@
                    class="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                    placeholder="Buscar por descripción, marca o lote…">
         </div>
+        @if($pecosasSubidas->isNotEmpty())
+            <select name="pecosa" onchange="this.form.submit()"
+                    class="border border-gray-300 rounded-lg text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Todas las Pecosas</option>
+                @foreach($pecosasSubidas as $nombrePecosa)
+                    <option value="{{ $nombrePecosa }}" {{ request('pecosa') === $nombrePecosa ? 'selected' : '' }}>{{ $nombrePecosa }}</option>
+                @endforeach
+            </select>
+        @endif
         <button type="submit"
                 class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors">
             Buscar
         </button>
-        @if(request('buscar'))
+        @if(request('buscar') || request('pecosa'))
             <a href="{{ route('pecosa.primaria.index') }}"
                class="text-sm text-gray-500 hover:text-gray-700 font-medium py-2.5 px-3">Limpiar</a>
         @endif
@@ -162,6 +193,7 @@
                         <th class="px-4 py-3 text-center border border-gray-600 w-24">PRESENT.</th>
                         <th class="px-4 py-3 text-center border border-gray-600 w-28">VOLUMEN</th>
                         <th class="px-4 py-3 text-center border border-gray-600">LOTE / LOTES</th>
+                        <th class="px-4 py-3 text-left border border-gray-600">PECOSA</th>
                         <th class="px-4 py-3 text-center border border-gray-600 w-24">ACCIONES</th>
                     </tr>
                 </thead>
@@ -188,6 +220,16 @@
                             </td>
                             <td class="px-4 py-2.5 text-center text-gray-600 border border-gray-200 text-xs">
                                 {{ $item->lote ?? '—' }}
+                            </td>
+                            <td class="px-4 py-2.5 text-gray-600 border border-gray-200 text-xs">
+                                @if($item->nombre_pecosa)
+                                    {{ $item->nombre_pecosa }}
+                                    @if($item->fecha_entrega)
+                                        <br><span class="text-gray-400">{{ \Carbon\Carbon::parse($item->fecha_entrega)->format('d/m/Y') }}</span>
+                                    @endif
+                                @else
+                                    —
+                                @endif
                             </td>
                             <td class="px-4 py-2.5 text-center border border-gray-200">
                                 <div class="inline-flex items-center space-x-2">
