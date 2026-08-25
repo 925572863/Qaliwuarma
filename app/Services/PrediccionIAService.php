@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\IaEntrenamiento;
 use App\Models\IaModeloBinario;
 use App\Models\RegistroAsistencia;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
 
@@ -316,6 +317,25 @@ class PrediccionIAService
             return null;
         }
 
+        // Ejecutar el script Python (carga scikit-learn/pandas + el modelo)
+        // es lento — varios segundos en el servidor gratuito. Como la
+        // predicción solo cambia cuando hay un registro de asistencia nuevo
+        // para este nivel/grado, se cachea en BD (persistente entre
+        // requests y deploys) y se recalcula solo cuando el hash cambia.
+        $ultimoRegistro = RegistroAsistencia::where('nivel', $nivel)
+            ->when($grado, fn($q) => $q->where('grado', $grado))
+            ->max('updated_at');
+        $totalRegistros = RegistroAsistencia::where('nivel', $nivel)
+            ->when($grado, fn($q) => $q->where('grado', $grado))
+            ->count();
+        $hash = md5($ultimoRegistro . '|' . $totalRegistros . '|' . $cantidad);
+        $claveCache = 'prediccion_ia_' . self::claveModelo($nivel, $grado) . '_' . $hash;
+
+        $cacheado = Cache::get($claveCache);
+        if ($cacheado !== null) {
+            return $cacheado;
+        }
+
         $rutaDatos = $this->exportarDatos($nivel, $grado);
 
         $resultado = $this->ejecutar([
@@ -327,9 +347,13 @@ class PrediccionIAService
         ]);
 
         if (!$resultado || !($resultado['ok'] ?? false)) {
+            // No se cachea un fallo: se reintenta en el siguiente request.
             return null;
         }
 
-        return $resultado['predicciones'] ?? [];
+        $predicciones = $resultado['predicciones'] ?? [];
+        Cache::put($claveCache, $predicciones, now()->addDays(7));
+
+        return $predicciones;
     }
 }
