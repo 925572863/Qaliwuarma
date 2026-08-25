@@ -22,6 +22,19 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// TEMPORAL: borrar analisis de IA cacheados en BD que quedaron guardados como
+// error (del bug del modelo Groq viejo), para forzar que se regeneren.
+Route::get('/limpiar-cache-ia/{token}', function (string $token) {
+    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
+        abort(404);
+    }
+    $borrados = \Illuminate\Support\Facades\DB::table('ia_analisis')
+        ->where('analisis', 'like', '\_\_ERROR\_\_%')
+        ->delete();
+
+    return response()->json(['registros_borrados' => $borrados]);
+});
+
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [

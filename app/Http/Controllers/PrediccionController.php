@@ -337,8 +337,9 @@ PROMPT;
                 }
             })();
 
-            // Guardar en BD si se generó correctamente
-            if ($analisisIA) {
+            // Guardar en BD solo si se generó correctamente (nunca cachear un error,
+            // o el usuario quedaría viendo ese mismo error hasta que cambie el hash)
+            if ($analisisIA && !str_starts_with($analisisIA, '__ERROR__')) {
                 try {
                     \Illuminate\Support\Facades\DB::table('ia_analisis')->updateOrInsert(
                         ['nivel' => $nivel],
