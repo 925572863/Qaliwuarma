@@ -22,21 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: ver todos los nombres de Pecosa agrupados en Primaria.
-Route::get('/diag-nombres-pecosa/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-    $resultado = [];
-    foreach (['pecosa_inicial', 'pecosa_primaria'] as $tabla) {
-        $resultado[$tabla] = \Illuminate\Support\Facades\DB::table($tabla)
-            ->selectRaw('nombre_pecosa, COUNT(*) as filas, MIN(created_at) as primera, MAX(created_at) as ultima')
-            ->groupBy('nombre_pecosa')
-            ->get();
-    }
-    return response()->json($resultado);
-});
-
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
