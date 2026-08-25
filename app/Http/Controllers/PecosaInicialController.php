@@ -74,7 +74,7 @@ class PecosaInicialController extends Controller
         ]);
 
         $filas        = $request->input('filas', []);
-        $nombrePecosa = $request->input('nombre_pecosa') ?: null;
+        $nombrePecosa = $request->input('nombre_pecosa') ?: $this->nombrePecosaAutomatico();
         $fechaEntrega = $request->input('fecha_entrega') ?: null;
         $now     = now();
         $nuevos  = 0;
@@ -231,7 +231,7 @@ class PecosaInicialController extends Controller
             $hoja        = $spreadsheet->getActiveSheet();
             $filas       = $hoja->toArray(null, true, true, false);
 
-            $nombrePecosa = $request->input('nombre_pecosa') ?: null;
+            $nombrePecosa = $request->input('nombre_pecosa') ?: $this->nombrePecosaAutomatico();
             $fechaEntrega = $request->input('fecha_entrega') ?: null;
             $now     = now();
             $errores = [];
@@ -312,7 +312,7 @@ class PecosaInicialController extends Controller
                 return back()->with('error', 'No se reconoció ningún producto en la foto. Intenta con una foto más clara y bien iluminada.');
             }
 
-            $nombrePecosa = $request->input('nombre_pecosa') ?: null;
+            $nombrePecosa = $request->input('nombre_pecosa') ?: $this->nombrePecosaAutomatico();
             $fechaEntrega = $request->input('fecha_entrega') ?: null;
             $now     = now();
             $nuevos  = 0;
@@ -349,6 +349,17 @@ class PecosaInicialController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    /**
+     * Si el usuario no escribe un nombre para la Pecosa que sube, se genera
+     * uno automático único (fecha y hora) en vez de dejarlo en blanco/null —
+     * así nunca dos subidas distintas terminan "sin nombre" y mezclándose
+     * entre sí por accidente.
+     */
+    private function nombrePecosaAutomatico(): string
+    {
+        return 'Pecosa ' . now()->format('d/m/Y H:i:s');
     }
 
     /**
