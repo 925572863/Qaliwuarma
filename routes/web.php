@@ -22,39 +22,45 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: ver la respuesta cruda de Gemini para una foto real subida.
-Route::post('/diag-gemini-foto/{token}', function (\Illuminate\Http\Request $request, string $token) {
+// TEMPORAL: listar filas de Pecosa cuyo "lote" es en realidad el volumen
+// (bug historico anterior a esta conversacion), para revisar antes de borrar.
+Route::get('/diag-lotes-corruptos/{token}', function (string $token) {
     if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
         abort(404);
     }
-    if (!$request->hasFile('foto')) {
-        return response()->json(['error' => 'sin archivo foto']);
+    $resultado = [];
+    foreach (['pecosa_inicial', 'pecosa_primaria'] as $tabla) {
+        $filas = \Illuminate\Support\Facades\DB::table($tabla)->get();
+        $sospechosas = $filas->filter(function ($f) {
+            if ($f->lote === null) return false;
+            // "sospechoso": el lote es puramente numerico y coincide con el volumen.
+            return is_numeric($f->lote) && abs((float)$f->lote - (float)$f->volumen) < 0.01;
+        })->map(fn($f) => [
+            'id' => $f->id, 'descripcion' => $f->descripcion, 'marca' => $f->marca,
+            'cant' => $f->cant, 'presentacion' => $f->presentacion, 'volumen' => $f->volumen, 'lote' => $f->lote,
+        ])->values();
+        $resultado[$tabla] = ['total_filas' => $filas->count(), 'sospechosas' => $sospechosas->count(), 'detalle' => $sospechosas];
     }
-    $archivo = $request->file('foto');
-    $key = config('services.gemini.key');
-    $mime = $archivo->getMimeType() ?: 'image/jpeg';
-    $data = base64_encode(file_get_contents($archivo->getPathname()));
+    return response()->json($resultado);
+});
 
-    $r = \Illuminate\Support\Facades\Http::timeout(45)->post(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={$key}",
-        [
-            'contents' => [[
-                'parts' => [
-                    ['text' => 'Describe brevemente que ves en esta imagen.'],
-                    ['inline_data' => ['mime_type' => $mime, 'data' => $data]],
-                ],
-            ]],
-            'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 2000, 'thinkingConfig' => ['thinkingBudget' => 300]],
-        ]
-    );
-
-    return response()->json([
-        'mime' => $mime,
-        'tamano_bytes' => $archivo->getSize(),
-        'status' => $r->status(),
-        'body' => substr($r->body(), 0, 1500),
-    ]);
-})->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+// TEMPORAL: borrar esas filas sospechosas (lote corrupto = volumen).
+Route::get('/borrar-lotes-corruptos/{token}', function (string $token) {
+    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
+        abort(404);
+    }
+    $borrados = [];
+    foreach (['pecosa_inicial', 'pecosa_primaria'] as $tabla) {
+        $filas = \Illuminate\Support\Facades\DB::table($tabla)->get();
+        $ids = $filas->filter(function ($f) {
+            if ($f->lote === null) return false;
+            return is_numeric($f->lote) && abs((float)$f->lote - (float)$f->volumen) < 0.01;
+        })->pluck('id');
+        \Illuminate\Support\Facades\DB::table($tabla)->whereIn('id', $ids)->delete();
+        $borrados[$tabla] = $ids->count();
+    }
+    return response()->json($borrados);
+});
 
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
