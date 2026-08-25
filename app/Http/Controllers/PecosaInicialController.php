@@ -46,33 +46,46 @@ class PecosaInicialController extends Controller
             'filas.*.fecha_vencimiento' => 'nullable|date',
         ]);
 
-        $filas   = $request->input('filas', []);
-        $inserts = [];
-        $now     = now();
+        $filas  = $request->input('filas', []);
+        $now    = now();
+        $nuevos = 0;
+        $sumados = 0;
 
         foreach ($filas as $fila) {
             if (empty($fila['descripcion'])) continue;
-            $inserts[] = [
-                'cant'              => (int) $fila['cant'],
-                'unid'              => strtoupper($fila['unid']),
-                'descripcion'       => strtoupper($fila['descripcion']),
-                'marca'             => isset($fila['marca']) && $fila['marca'] !== '' ? strtoupper($fila['marca']) : null,
-                'presentacion'      => (float) $fila['presentacion'],
-                'volumen'           => round((int) $fila['cant'] * (float) $fila['presentacion'], 3),
-                'stock_actual'      => round((int) $fila['cant'] * (float) $fila['presentacion'], 3),
-                'lote'              => isset($fila['lote']) && $fila['lote'] !== '' ? $fila['lote'] : null,
-                'fecha_vencimiento' => isset($fila['fecha_vencimiento']) && $fila['fecha_vencimiento'] !== '' ? $fila['fecha_vencimiento'] : null,
-                'created_at'        => $now,
-                'updated_at'        => $now,
-            ];
+
+            $cant         = (int) $fila['cant'];
+            $unid         = strtoupper($fila['unid']);
+            $descripcion  = strtoupper($fila['descripcion']);
+            $marca        = isset($fila['marca']) && $fila['marca'] !== '' ? strtoupper($fila['marca']) : null;
+            $presentacion = (float) $fila['presentacion'];
+            $lote         = isset($fila['lote']) && $fila['lote'] !== '' ? $fila['lote'] : null;
+            $fechaVenc    = isset($fila['fecha_vencimiento']) && $fila['fecha_vencimiento'] !== '' ? $fila['fecha_vencimiento'] : null;
+
+            if ($this->sumarSiYaExiste('pecosa_inicial', $descripcion, $marca, $lote, $cant, $presentacion, $now)) {
+                $sumados++;
+            } else {
+                \Illuminate\Support\Facades\DB::table('pecosa_inicial')->insert([
+                    'cant'              => $cant,
+                    'unid'              => $unid,
+                    'descripcion'       => $descripcion,
+                    'marca'             => $marca,
+                    'presentacion'      => $presentacion,
+                    'volumen'           => round($cant * $presentacion, 3),
+                    'stock_actual'      => round($cant * $presentacion, 3),
+                    'lote'              => $lote,
+                    'fecha_vencimiento' => $fechaVenc,
+                    'created_at'        => $now,
+                    'updated_at'        => $now,
+                ]);
+                $nuevos++;
+            }
         }
 
-        if (!empty($inserts)) {
-            \Illuminate\Support\Facades\DB::table('pecosa_inicial')->insert($inserts);
-        }
+        $msg = "{$nuevos} producto(s) registrado(s).";
+        if ($sumados > 0) $msg .= " {$sumados} ya existían y se sumó su cantidad al stock (no se duplicaron).";
 
-        return redirect()->route('pecosa.inicial.index')
-            ->with('success', count($inserts) . ' producto(s) registrado(s) exitosamente.');
+        return redirect()->route('pecosa.inicial.index')->with('success', $msg);
     }
 
     public function edit(PecosaInicial $inicial)
@@ -183,9 +196,10 @@ class PecosaInicialController extends Controller
             $hoja        = $spreadsheet->getActiveSheet();
             $filas       = $hoja->toArray(null, true, true, false);
 
-            $inserts = [];
             $now     = now();
             $errores = [];
+            $nuevos  = 0;
+            $sumados = 0;
 
             foreach ($filas as $idx => $fila) {
                 if ($idx === 0) continue; // saltar encabezado
@@ -203,25 +217,27 @@ class PecosaInicialController extends Controller
                     continue;
                 }
 
-                $inserts[] = [
-                    'cant'         => $cant,
-                    'unid'         => $unid,
-                    'descripcion'  => $descripcion,
-                    'marca'        => $marca,
-                    'presentacion' => $presentacion,
-                    'volumen'      => round($cant * $presentacion, 3),
-                    'stock_actual' => round($cant * $presentacion, 3),
-                    'lote'         => $lote,
-                    'created_at'   => $now,
-                    'updated_at'   => $now,
-                ];
+                if ($this->sumarSiYaExiste('pecosa_inicial', $descripcion, $marca, $lote, $cant, $presentacion, $now)) {
+                    $sumados++;
+                } else {
+                    \Illuminate\Support\Facades\DB::table('pecosa_inicial')->insert([
+                        'cant'         => $cant,
+                        'unid'         => $unid,
+                        'descripcion'  => $descripcion,
+                        'marca'        => $marca,
+                        'presentacion' => $presentacion,
+                        'volumen'      => round($cant * $presentacion, 3),
+                        'stock_actual' => round($cant * $presentacion, 3),
+                        'lote'         => $lote,
+                        'created_at'   => $now,
+                        'updated_at'   => $now,
+                    ]);
+                    $nuevos++;
+                }
             }
 
-            if (!empty($inserts)) {
-                \Illuminate\Support\Facades\DB::table('pecosa_inicial')->insert($inserts);
-            }
-
-            $msg = count($inserts) . ' producto(s) importado(s) correctamente.';
+            $msg = "{$nuevos} producto(s) importado(s).";
+            if ($sumados > 0) $msg .= " {$sumados} ya existían (mismo producto/marca/lote) y se sumó la cantidad, sin duplicar.";
             if (!empty($errores)) {
                 $msg .= ' ' . count($errores) . ' fila(s) con error ignoradas.';
             }
@@ -231,5 +247,36 @@ class PecosaInicialController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Error al leer el archivo: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Evita duplicar un producto que ya existe (mismo descripcion+marca+lote):
+     * en vez de insertar una fila nueva, suma la cantidad al registro
+     * existente (cant, volumen y stock_actual). Devuelve true si sumó a uno
+     * existente, false si no encontró coincidencia (debe insertarse aparte).
+     */
+    private function sumarSiYaExiste(string $tabla, string $descripcion, ?string $marca, ?string $lote, int $cant, float $presentacion, $now): bool
+    {
+        $existente = \Illuminate\Support\Facades\DB::table($tabla)
+            ->where('descripcion', $descripcion)
+            ->where(function ($q) use ($marca) {
+                $marca === null ? $q->whereNull('marca') : $q->where('marca', $marca);
+            })
+            ->where(function ($q) use ($lote) {
+                $lote === null ? $q->whereNull('lote') : $q->where('lote', $lote);
+            })
+            ->first();
+
+        if (!$existente) return false;
+
+        $volumenNuevo = round($cant * $presentacion, 3);
+        \Illuminate\Support\Facades\DB::table($tabla)->where('id', $existente->id)->update([
+            'cant'         => $existente->cant + $cant,
+            'volumen'      => round($existente->volumen + $volumenNuevo, 3),
+            'stock_actual' => round($existente->stock_actual + $volumenNuevo, 3),
+            'updated_at'   => $now,
+        ]);
+
+        return true;
     }
 }
