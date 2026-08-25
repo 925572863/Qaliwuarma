@@ -22,46 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: listar filas de Pecosa cuyo "lote" es en realidad el volumen
-// (bug historico anterior a esta conversacion), para revisar antes de borrar.
-Route::get('/diag-lotes-corruptos/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-    $resultado = [];
-    foreach (['pecosa_inicial', 'pecosa_primaria'] as $tabla) {
-        $filas = \Illuminate\Support\Facades\DB::table($tabla)->get();
-        $sospechosas = $filas->filter(function ($f) {
-            if ($f->lote === null) return false;
-            // "sospechoso": el lote es puramente numerico y coincide con el volumen.
-            return is_numeric($f->lote) && abs((float)$f->lote - (float)$f->volumen) < 0.01;
-        })->map(fn($f) => [
-            'id' => $f->id, 'descripcion' => $f->descripcion, 'marca' => $f->marca,
-            'cant' => $f->cant, 'presentacion' => $f->presentacion, 'volumen' => $f->volumen, 'lote' => $f->lote,
-        ])->values();
-        $resultado[$tabla] = ['total_filas' => $filas->count(), 'sospechosas' => $sospechosas->count(), 'detalle' => $sospechosas];
-    }
-    return response()->json($resultado);
-});
-
-// TEMPORAL: borrar esas filas sospechosas (lote corrupto = volumen).
-Route::get('/borrar-lotes-corruptos/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-    $borrados = [];
-    foreach (['pecosa_inicial', 'pecosa_primaria'] as $tabla) {
-        $filas = \Illuminate\Support\Facades\DB::table($tabla)->get();
-        $ids = $filas->filter(function ($f) {
-            if ($f->lote === null) return false;
-            return is_numeric($f->lote) && abs((float)$f->lote - (float)$f->volumen) < 0.01;
-        })->pluck('id');
-        \Illuminate\Support\Facades\DB::table($tabla)->whereIn('id', $ids)->delete();
-        $borrados[$tabla] = $ids->count();
-    }
-    return response()->json($borrados);
-});
-
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
