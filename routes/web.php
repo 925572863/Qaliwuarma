@@ -22,6 +22,21 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// TEMPORAL: borrar filas de Pecosa Primaria sin nombre (subidas sin llenar
+// el campo, antes del fix que genera nombre automatico) que quedaron
+// mezcladas visualmente con "Pecosa 1".
+Route::get('/borrar-pecosa-sin-nombre/{token}', function (string $token) {
+    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
+        abort(404);
+    }
+    $filas = \Illuminate\Support\Facades\DB::table('pecosa_primaria')->whereNull('nombre_pecosa')->get();
+    $detalle = $filas->map(fn($f) => [
+        'id' => $f->id, 'descripcion' => $f->descripcion, 'marca' => $f->marca, 'cant' => $f->cant,
+    ]);
+    $borrados = \Illuminate\Support\Facades\DB::table('pecosa_primaria')->whereNull('nombre_pecosa')->delete();
+    return response()->json(['borrados' => $borrados, 'detalle' => $detalle]);
+});
+
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
