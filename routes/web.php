@@ -22,38 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: probar variantes del payload de Gemini para diagnosticar el 400.
-Route::get('/diag-gemini2/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-    $key = config('services.gemini.key');
-    $base = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={$key}";
-
-    $variantes = [
-        'sin_thinkingConfig' => [
-            'contents' => [['parts' => [['text' => 'di ok']]]],
-            'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 500],
-        ],
-        'con_thinkingBudget_0' => [
-            'contents' => [['parts' => [['text' => 'di ok']]]],
-            'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 500, 'thinkingConfig' => ['thinkingBudget' => 0]],
-        ],
-        'con_thinkingBudget_100' => [
-            'contents' => [['parts' => [['text' => 'di ok']]]],
-            'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 500, 'thinkingConfig' => ['thinkingBudget' => 100]],
-        ],
-    ];
-
-    $resultados = [];
-    foreach ($variantes as $nombre => $payload) {
-        $r = \Illuminate\Support\Facades\Http::timeout(20)->post($base, $payload);
-        $resultados[$nombre] = ['status' => $r->status(), 'body' => substr($r->body(), 0, 400)];
-    }
-
-    return response()->json($resultados);
-});
-
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
