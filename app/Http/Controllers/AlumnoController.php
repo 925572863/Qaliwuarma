@@ -618,8 +618,10 @@ class AlumnoController extends Controller
 
         $v = $this->normalizeText((string)$val);
 
-        if (str_contains($v, 'traslad')) return 'baja';       // "Trasladado", "Se traslada"
-        if (str_contains($v, 'retir'))   return 'baja';       // "Retirado", "Se retira"
+        // 'inactivo' es el estado que el sistema usa como "Trasladado" (ver
+        // Alumno::getEstadoLabelAttribute y la tarjeta "Trasladados" del Dashboard).
+        if (str_contains($v, 'traslad')) return 'inactivo';   // "Trasladado", "Se traslada"
+        if (str_contains($v, 'retir'))   return 'inactivo';   // "Retirado", "Se retira"
         if (str_contains($v, 'baja'))    return 'baja';
         if (str_contains($v, 'fallec'))  return 'baja';       // "Fallecido"
         if (str_contains($v, 'egres'))   return 'egresado';   // "Egresado"

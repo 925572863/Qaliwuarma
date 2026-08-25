@@ -180,8 +180,8 @@ class AlumnoControllerTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('alumnos', ['apellido_paterno' => 'PEREZ', 'estado' => 'activo']);
-        $this->assertDatabaseHas('alumnos', ['apellido_paterno' => 'GARCIA', 'estado' => 'baja']);
-        $this->assertDatabaseHas('alumnos', ['apellido_paterno' => 'TORRES', 'estado' => 'baja']);
+        $this->assertDatabaseHas('alumnos', ['apellido_paterno' => 'GARCIA', 'estado' => 'inactivo']);
+        $this->assertDatabaseHas('alumnos', ['apellido_paterno' => 'TORRES', 'estado' => 'inactivo']);
 
         // El trasladado/retirado no debe contarse como matrícula activa
         $this->assertSame(1, Alumno::where('nivel', 'primaria')->where('estado', 'activo')->count());

@@ -22,6 +22,17 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// TEMPORAL: corrige alumnos ya importados con estado 'baja' que en realidad
+// deben quedar como 'inactivo' (convencion real del sistema para "Trasladado").
+Route::get('/fix-estado-trasladados/{token}', function (string $token) {
+    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
+        abort(404);
+    }
+    $actualizados = \App\Models\Alumno::where('estado', 'baja')->update(['estado' => 'inactivo']);
+
+    return response()->json(['actualizados' => $actualizados]);
+});
+
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
