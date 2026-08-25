@@ -22,28 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: verificar que GEMINI_API_KEY este configurada y funcione en Render.
-Route::get('/diag-gemini/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-    $vision = new \App\Services\GeminiVisionService();
-    if (!$vision->configurado()) {
-        return response()->json(['configurado' => false]);
-    }
-    // Prueba minima: pedir a Gemini que responda algo simple, sin imagen.
-    $key = config('services.gemini.key');
-    $resp = \Illuminate\Support\Facades\Http::timeout(20)->post(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={$key}",
-        ['contents' => [['parts' => [['text' => 'Responde solo con la palabra: ok']]]]]
-    );
-    return response()->json([
-        'configurado' => true,
-        'status' => $resp->status(),
-        'body' => substr($resp->body(), 0, 500),
-    ]);
-});
-
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
