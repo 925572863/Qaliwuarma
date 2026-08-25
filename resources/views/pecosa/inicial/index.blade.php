@@ -132,6 +132,13 @@
     </div>
 </div>
 
+@if($viendoSoloReciente)
+    <div class="bg-blue-50 border border-blue-200 text-blue-800 text-sm rounded-xl px-4 py-3 mb-5 flex items-center justify-between">
+        <span>Mostrando solo la Pecosa más reciente: <strong>{{ $pecosaMasReciente }}</strong>. Las anteriores no se muestran aquí para que no se mezclen.</span>
+        <a href="{{ route('pecosa.inicial.index', ['todas' => 1]) }}" class="text-blue-700 font-semibold hover:underline whitespace-nowrap ml-4">Ver historial completo →</a>
+    </div>
+@endif
+
 {{-- Buscador --}}
 <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-5">
     <form method="GET" action="{{ route('pecosa.inicial.index') }}" class="flex gap-3">

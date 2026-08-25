@@ -11,6 +11,28 @@ class PecosaPrimariaController extends Controller
 {
     public function index(Request $request)
     {
+        // Lista de Pecosas distintas ya subidas (para el filtro y para saber
+        // cual es la mas reciente). Se agrupa en PHP, no con SELECT DISTINCT +
+        // ORDER BY de otra columna, que PostgreSQL rechaza si esa columna no
+        // está en el SELECT.
+        $pecosasOrdenadas = PecosaPrimaria::whereNotNull('nombre_pecosa')
+            ->select('nombre_pecosa', 'created_at')
+            ->get()
+            ->groupBy('nombre_pecosa')
+            ->map(fn($grupo) => $grupo->max('created_at'))
+            ->sortDesc();
+        $pecosasSubidas   = $pecosasOrdenadas->keys()->values();
+        $pecosaMasReciente = $pecosasSubidas->first();
+
+        // Por defecto (sin buscar ni elegir Pecosa a proposito) solo se
+        // muestra la Pecosa mas reciente, para que la anterior no aparezca
+        // mezclada en el cuadro. Con "?todas=1" o eligiendo una del filtro
+        // se ve el historial completo.
+        $viendoSoloReciente = $pecosaMasReciente
+            && !$request->filled('buscar')
+            && !$request->has('pecosa')
+            && !$request->boolean('todas');
+
         $query = PecosaPrimaria::query();
 
         if ($request->filled('buscar')) {
@@ -25,6 +47,8 @@ class PecosaPrimariaController extends Controller
 
         if ($request->filled('pecosa')) {
             $query->where('nombre_pecosa', $request->input('pecosa'));
+        } elseif ($viendoSoloReciente) {
+            $query->where('nombre_pecosa', $pecosaMasReciente);
         }
 
         $items = $query->orderBy('descripcion')->paginate(20)->withQueryString();
@@ -35,19 +59,9 @@ class PecosaPrimariaController extends Controller
         $totalProductosUnicos = PecosaPrimaria::distinct()->count('descripcion');
         $totalUnidades        = PecosaPrimaria::sum('cant');
 
-        // Lista de Pecosas distintas ya subidas, para el filtro. Se agrupa en
-        // PHP (no con SELECT DISTINCT + ORDER BY de otra columna, que
-        // PostgreSQL rechaza si esa columna no está en el SELECT).
-        $pecosasSubidas = PecosaPrimaria::whereNotNull('nombre_pecosa')
-            ->select('nombre_pecosa', 'fecha_entrega')
-            ->get()
-            ->unique('nombre_pecosa')
-            ->sortByDesc('fecha_entrega')
-            ->pluck('nombre_pecosa')
-            ->values();
-
         return view('pecosa.primaria.index', compact(
-            'items', 'totalProductos', 'totalProductosUnicos', 'totalUnidades', 'pecosasSubidas'
+            'items', 'totalProductos', 'totalProductosUnicos', 'totalUnidades',
+            'pecosasSubidas', 'pecosaMasReciente', 'viendoSoloReciente'
         ));
     }
 
