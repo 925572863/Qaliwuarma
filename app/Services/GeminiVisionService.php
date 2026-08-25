@@ -65,7 +65,12 @@ PROMPT;
                 ]],
                 'generationConfig' => [
                     'temperature'     => 0.1,
-                    'maxOutputTokens' => 4000,
+                    'maxOutputTokens' => 8000,
+                    // gemini-3.6-flash "piensa" antes de responder y esos tokens de
+                    // razonamiento cuentan contra maxOutputTokens; sin desactivarlo
+                    // se puede quedar sin espacio para la respuesta final (igual
+                    // que pasó con el modelo de Groq antes).
+                    'thinkingConfig'  => ['thinkingBudget' => 0],
                 ],
             ]
         );
@@ -78,7 +83,9 @@ PROMPT;
 
         preg_match('/\[.*\]/s', $texto, $m);
         if (empty($m[0])) {
-            throw new \RuntimeException('La IA no pudo reconocer productos en la foto. Intenta con una foto más clara.');
+            $finishReason = $response->json('candidates.0.finishReason', '?');
+            \Illuminate\Support\Facades\Log::warning('GeminiVision: sin JSON en respuesta. finishReason=' . $finishReason . ' Texto: ' . substr($texto, 0, 1000) . ' | Respuesta cruda: ' . substr($response->body(), 0, 1000));
+            throw new \RuntimeException('La IA no pudo reconocer productos en la foto. Intenta con una foto más clara. [debug finishReason=' . $finishReason . ': ' . substr($texto, 0, 300) . ']');
         }
 
         $decoded = json_decode($m[0], true);
