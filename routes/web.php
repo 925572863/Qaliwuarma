@@ -22,47 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: diagnosticar si el deploy de Render tiene el codigo actualizado
-// y si la llamada real a Groq funciona desde ahi. Protegido por token.
-Route::get('/diag-groq/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-
-    $rutaController = app_path('Http/Controllers/PrediccionController.php');
-    $rutaGemini     = app_path('Services/GeminiService.php');
-
-    $tieneModeloViejoController = str_contains(file_get_contents($rutaController), 'llama-3.1-8b-instant');
-    $tieneModeloViejoGemini     = str_contains(file_get_contents($rutaGemini), 'llama-3.1-8b-instant');
-
-    $llamadaReal = null;
-    try {
-        $response = \Illuminate\Support\Facades\Http::timeout(20)->withHeaders([
-            'Authorization' => 'Bearer ' . config('services.groq.key'),
-            'Content-Type'  => 'application/json',
-        ])->post('https://api.groq.com/openai/v1/chat/completions', [
-            'model'      => 'openai/gpt-oss-20b',
-            'messages'   => [['role' => 'user', 'content' => 'di ok']],
-            'max_tokens' => 500,
-        ]);
-        $llamadaReal = [
-            'status' => $response->status(),
-            'body'   => substr($response->body(), 0, 500),
-        ];
-    } catch (\Exception $e) {
-        $llamadaReal = ['excepcion' => $e->getMessage()];
-    }
-
-    return response()->json([
-        'controller_tiene_modelo_viejo' => $tieneModeloViejoController,
-        'gemini_service_tiene_modelo_viejo' => $tieneModeloViejoGemini,
-        'groq_api_key_configurada' => !empty(config('services.groq.key')),
-        'groq_api_key_primeros_chars' => substr(config('services.groq.key') ?? '', 0, 8),
-        'llamada_real_a_groq' => $llamadaReal,
-        'git_commit' => trim(shell_exec('cd '.base_path().' && git rev-parse HEAD 2>&1') ?? 'no disponible'),
-    ]);
-});
-
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
