@@ -34,7 +34,7 @@ Route::get('/diag-gemini/{token}', function (string $token) {
     // Prueba minima: pedir a Gemini que responda algo simple, sin imagen.
     $key = config('services.gemini.key');
     $resp = \Illuminate\Support\Facades\Http::timeout(20)->post(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={$key}",
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={$key}",
         ['contents' => [['parts' => [['text' => 'Responde solo con la palabra: ok']]]]]
     );
     return response()->json([

@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Http;
 class GeminiVisionService
 {
     private string $apiKey;
-    private string $modelo = 'gemini-2.0-flash';
+    private string $modelo = 'gemini-3.6-flash';
 
     public function __construct()
     {
