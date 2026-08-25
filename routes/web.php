@@ -22,6 +22,21 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// TEMPORAL: etiquetar como "Pecosa Antigua" las filas de Pecosa que no
+// tienen nombre asignado (subidas antes de que existiera esta funcion).
+Route::get('/etiquetar-pecosa-antigua/{token}', function (string $token) {
+    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
+        abort(404);
+    }
+    $actualizados = [];
+    foreach (['pecosa_inicial', 'pecosa_primaria'] as $tabla) {
+        $actualizados[$tabla] = \Illuminate\Support\Facades\DB::table($tabla)
+            ->whereNull('nombre_pecosa')
+            ->update(['nombre_pecosa' => 'Pecosa Antigua']);
+    }
+    return response()->json($actualizados);
+});
+
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
