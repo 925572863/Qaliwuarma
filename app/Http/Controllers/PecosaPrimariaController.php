@@ -35,9 +35,16 @@ class PecosaPrimariaController extends Controller
         $totalProductosUnicos = PecosaPrimaria::distinct()->count('descripcion');
         $totalUnidades        = PecosaPrimaria::sum('cant');
 
-        // Lista de Pecosas distintas ya subidas, para el filtro.
+        // Lista de Pecosas distintas ya subidas, para el filtro. Se agrupa en
+        // PHP (no con SELECT DISTINCT + ORDER BY de otra columna, que
+        // PostgreSQL rechaza si esa columna no está en el SELECT).
         $pecosasSubidas = PecosaPrimaria::whereNotNull('nombre_pecosa')
-            ->distinct()->orderByDesc('fecha_entrega')->pluck('nombre_pecosa');
+            ->select('nombre_pecosa', 'fecha_entrega')
+            ->get()
+            ->unique('nombre_pecosa')
+            ->sortByDesc('fecha_entrega')
+            ->pluck('nombre_pecosa')
+            ->values();
 
         return view('pecosa.primaria.index', compact(
             'items', 'totalProductos', 'totalProductosUnicos', 'totalUnidades', 'pecosasSubidas'
