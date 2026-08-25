@@ -22,6 +22,40 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// TEMPORAL: ver la respuesta cruda de Gemini para una foto real subida.
+Route::post('/diag-gemini-foto/{token}', function (\Illuminate\Http\Request $request, string $token) {
+    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
+        abort(404);
+    }
+    if (!$request->hasFile('foto')) {
+        return response()->json(['error' => 'sin archivo foto']);
+    }
+    $archivo = $request->file('foto');
+    $key = config('services.gemini.key');
+    $mime = $archivo->getMimeType() ?: 'image/jpeg';
+    $data = base64_encode(file_get_contents($archivo->getPathname()));
+
+    $r = \Illuminate\Support\Facades\Http::timeout(45)->post(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={$key}",
+        [
+            'contents' => [[
+                'parts' => [
+                    ['text' => 'Describe brevemente que ves en esta imagen.'],
+                    ['inline_data' => ['mime_type' => $mime, 'data' => $data]],
+                ],
+            ]],
+            'generationConfig' => ['temperature' => 0.1, 'maxOutputTokens' => 2000, 'thinkingConfig' => ['thinkingBudget' => 300]],
+        ]
+    );
+
+    return response()->json([
+        'mime' => $mime,
+        'tamano_bytes' => $archivo->getSize(),
+        'status' => $r->status(),
+        'body' => substr($r->body(), 0, 1500),
+    ]);
+})->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
