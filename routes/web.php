@@ -22,18 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: corrige la etiqueta mal puesta en Pecosa Primaria (no habia
-// nada "antiguo" con que mezclarse, la tabla se habia vaciado antes).
-Route::get('/renombrar-pecosa-primaria/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-    $actualizados = \Illuminate\Support\Facades\DB::table('pecosa_primaria')
-        ->where('nombre_pecosa', 'Pecosa Antigua')
-        ->update(['nombre_pecosa' => 'Pecosa 1']);
-    return response()->json(['actualizados' => $actualizados]);
-});
-
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
