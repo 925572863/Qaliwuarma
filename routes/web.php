@@ -22,16 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: vaciar por completo Pecosa Primaria (pedido explicito del usuario).
-Route::get('/vaciar-pecosa-primaria/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-    $borrados = \Illuminate\Support\Facades\DB::table('pecosa_primaria')->count();
-    \Illuminate\Support\Facades\DB::table('pecosa_primaria')->delete();
-    return response()->json(['borrados' => $borrados]);
-});
-
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
