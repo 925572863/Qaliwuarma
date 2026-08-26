@@ -92,8 +92,9 @@
                                 <td class="border border-gray-200 p-0 text-center">
                                     <input type="number" min="0"
                                            name="cantidades[{{ $fila['seccion'] }}][{{ $productos[$index]['id'] }}]"
-                                           value="{{ $cant }}"
-                                           class="w-full text-center text-sm py-2 px-1 focus:outline-none focus:bg-yellow-50 focus:ring-1 focus:ring-yellow-400"
+                                           value="{{ $cant > 0 ? $cant : '' }}"
+                                           placeholder="0"
+                                           class="w-full text-center text-sm py-2 px-1 focus:outline-none focus:bg-yellow-50 focus:ring-1 focus:ring-yellow-400 placeholder-gray-300"
                                            data-col="{{ $index }}"
                                            data-row="{{ $loop->parent->index }}"
                                            onchange="recalcular()">
