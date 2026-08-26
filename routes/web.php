@@ -22,6 +22,22 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// TEMPORAL: verificar que el blade con los colores nuevos este en el servidor.
+Route::get('/check-blade-colores/{token}', function (string $token) {
+    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
+        abort(404);
+    }
+    $ruta = resource_path('views/pecosa/primaria/prorrateo.blade.php');
+    $contenido = file_get_contents($ruta);
+    return response()->json([
+        'tiene_bg_yellow_400' => str_contains($contenido, 'bg-yellow-400'),
+        'tiene_bg_cyan_400'   => str_contains($contenido, 'bg-cyan-400'),
+        'tiene_bg_gray_800_viejo_en_fila1' => str_contains($contenido, 'bg-gray-800 text-white">'),
+        'commit_actual' => trim(shell_exec('cd '.base_path().' && git rev-parse HEAD 2>&1') ?? 'no disponible'),
+        'ultima_modificacion_archivo' => date('Y-m-d H:i:s', filemtime($ruta)),
+    ]);
+});
+
 
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
