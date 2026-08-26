@@ -22,22 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: revertir "Pecosa 1" a su valor original (970), dejar "Pecosa5" en 1940.
-Route::get('/revertir-cereal-pecosa1/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-    $fila = \Illuminate\Support\Facades\DB::table('pecosa_inicial')
-        ->where('id', 19)->where('nombre_pecosa', 'Pecosa 1')->first();
-    if (!$fila) {
-        return response()->json(['error' => 'no encontrado o nombre no coincide']);
-    }
-    $volumen = round(970 * $fila->presentacion, 3);
-    \Illuminate\Support\Facades\DB::table('pecosa_inicial')->where('id', 19)->update([
-        'cant' => 970, 'volumen' => $volumen, 'stock_actual' => $volumen, 'updated_at' => now(),
-    ]);
-    return response()->json(['revertido' => true, 'id' => 19]);
-});
 
 
 
