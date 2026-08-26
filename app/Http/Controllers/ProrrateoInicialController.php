@@ -23,9 +23,27 @@ class ProrrateoInicialController extends Controller
         return $secciones;
     }
 
+    /**
+     * Solo usa los productos de la Pecosa más reciente (igual que el
+     * listado de Pecosa Inicial), para no mezclar entregas de distintas
+     * fechas en un mismo reparto. Si ningún producto tiene nombre_pecosa
+     * (datos antiguos, de antes de esa función), usa todos.
+     */
     private function getProductos(): array
     {
-        return DB::table('pecosa_inicial')->orderBy('descripcion')->get()
+        $pecosaMasReciente = DB::table('pecosa_inicial')
+            ->whereNotNull('nombre_pecosa')
+            ->select('nombre_pecosa', 'created_at')
+            ->get()
+            ->groupBy('nombre_pecosa')
+            ->map(fn($grupo) => $grupo->max('created_at'))
+            ->sortDesc()
+            ->keys()
+            ->first();
+
+        return DB::table('pecosa_inicial')
+            ->when($pecosaMasReciente, fn($q) => $q->where('nombre_pecosa', $pecosaMasReciente))
+            ->orderBy('descripcion')->get()
             ->map(fn($p) => [
                 'id'           => $p->id,
                 'nombre'       => $p->descripcion,
