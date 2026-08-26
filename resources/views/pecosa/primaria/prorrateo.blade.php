@@ -52,7 +52,7 @@
                                 {{ $prod['nombre'] }}
                             </th>
                         @endforeach
-                        <th rowspan="3" class="px-3 py-3 border border-gray-700 font-bold uppercase text-center bg-gray-800 text-white text-xs">TOTAL</th>
+                        <th rowspan="2" class="px-3 py-3 border border-gray-700 font-bold uppercase text-center bg-gray-800 text-white text-xs">TOTAL</th>
                     </tr>
                     {{-- Fila 2: presentación --}}
                     <tr class="bg-white text-gray-700 text-[9px]">
@@ -62,13 +62,16 @@
                             </th>
                         @endforeach
                     </tr>
-                    {{-- Fila 3: cantidad total PECOSA (celeste, como el modelo) --}}
+                    {{-- Fila 3: cantidad total PECOSA (celeste, como el modelo), con el gran total de todos los productos juntos --}}
                     <tr class="bg-cyan-400 text-gray-900 text-[9px] font-bold">
                         @foreach($productos as $prod)
                             <td class="px-2 py-1 border border-cyan-500 text-center">
                                 {{ number_format($prod['cant_total']) }}
                             </td>
                         @endforeach
+                        <td class="px-3 py-1 border border-cyan-500 text-center text-sm bg-cyan-500">
+                            {{ number_format(array_sum(array_column($productos, 'cant_total'))) }}
+                        </td>
                     </tr>
                 </thead>
 
