@@ -22,25 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: corrige lote y stock_actual del FRIJOL en Pecosa 5 Primaria.
-Route::get('/fix-frijol/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-    $fila = \Illuminate\Support\Facades\DB::table('pecosa_primaria')
-        ->where('nombre_pecosa', 'Pecosa 5')
-        ->where('descripcion', 'FRIJOL')
-        ->first();
-    if (!$fila) {
-        return response()->json(['error' => 'no encontrado']);
-    }
-    \Illuminate\Support\Facades\DB::table('pecosa_primaria')->where('id', $fila->id)->update([
-        'lote' => '0062026',
-        'stock_actual' => $fila->volumen,
-        'updated_at' => now(),
-    ]);
-    return response()->json(['corregido' => true, 'id' => $fila->id]);
-});
 
 
 
