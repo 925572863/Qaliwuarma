@@ -102,6 +102,16 @@
                 </tbody>
 
                 <tfoot>
+                    {{-- Total de alumnos (suma de todas las secciones) --}}
+                    <tr class="bg-gray-200 font-bold text-gray-800 text-xs">
+                        <td class="px-4 py-3 border border-gray-300 uppercase text-center sticky left-0 z-20 bg-gray-200">
+                            TOTAL ALUMNOS
+                        </td>
+                        <td colspan="{{ count($productos) }}" class="px-2 py-3 border border-gray-300 text-center">
+                            {{ number_format($totalAlumnos) }}
+                        </td>
+                        <td class="px-4 py-3 border border-gray-300"></td>
+                    </tr>
                     <tr class="bg-gray-100 font-bold text-gray-800 text-xs">
                         <td class="px-4 py-3 border border-gray-300 uppercase text-center sticky left-0 z-20 bg-gray-100">
                             TOTAL DISTRIBUIDO
