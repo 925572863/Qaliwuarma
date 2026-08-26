@@ -102,29 +102,41 @@
                 </tbody>
 
                 <tfoot>
-                    {{-- Total de alumnos (suma de todas las secciones) --}}
-                    <tr class="bg-gray-200 font-bold text-gray-800 text-xs">
-                        <td class="px-4 py-3 border border-gray-300 uppercase text-center sticky left-0 z-20 bg-gray-200">
-                            TOTAL ALUMNOS
+                    {{-- Fila 1: TOTAL de alumnos (suma de todas las secciones) --}}
+                    <tr class="bg-cyan-500 text-white font-bold text-xs">
+                        <td class="px-4 py-3 border border-cyan-600 uppercase text-center sticky left-0 z-20 bg-cyan-500">
+                            TOTAL
                         </td>
-                        <td colspan="{{ count($productos) }}" class="px-2 py-3 border border-gray-300 text-center">
+                        <td colspan="{{ count($productos) }}" class="px-2 py-3 border border-cyan-600 text-center text-base">
                             {{ number_format($totalAlumnos) }}
                         </td>
-                        <td class="px-4 py-3 border border-gray-300"></td>
+                        <td class="px-4 py-3 border border-cyan-600"></td>
                     </tr>
+                    {{-- Fila 2: Nº total de productos distribuidos por columna --}}
                     <tr class="bg-gray-100 font-bold text-gray-800 text-xs">
                         <td class="px-4 py-3 border border-gray-300 uppercase text-center sticky left-0 z-20 bg-gray-100">
-                            TOTAL DISTRIBUIDO
+                            Nº TOTAL PRODUCTOS
                         </td>
                         @foreach($totalesProductos as $i => $total)
                             <td class="px-2 py-3 border border-gray-300 text-center col-total" data-col="{{ $i }}">
-                                <div class="font-bold">{{ number_format($total) }}</div>
-                                <div class="text-[9px] text-gray-400 font-normal">/ {{ number_format($productos[$i]['cant_total']) }}</div>
+                                {{ number_format($total) }}
                             </td>
                         @endforeach
                         <td class="px-4 py-3 border border-gray-300 text-center font-black text-base bg-gray-200" id="gran-total">
                             {{ number_format($totalGeneral) }}
                         </td>
+                    </tr>
+                    {{-- Fila 3: diferencia contra el total de la PECOSA (debe dar 0 si ya se repartió todo) --}}
+                    <tr class="bg-white font-bold text-gray-500 text-xs">
+                        <td class="px-4 py-3 border border-gray-300 uppercase text-center sticky left-0 z-20 bg-white text-[10px]">
+                            Diferencia c/ PECOSA
+                        </td>
+                        @foreach($totalesProductos as $i => $total)
+                            <td class="px-2 py-3 border border-gray-300 text-center col-diferencia" data-col="{{ $i }}" data-pecosa="{{ $productos[$i]['cant_total'] }}">
+                                {{ number_format($productos[$i]['cant_total'] - $total) }}
+                            </td>
+                        @endforeach
+                        <td class="px-4 py-3 border border-gray-300"></td>
                     </tr>
                 </tfoot>
             </table>
@@ -185,7 +197,14 @@ function recalcular() {
 
     document.querySelectorAll('.col-total').forEach(td => {
         const col = td.dataset.col;
-        td.querySelector('div:first-child').textContent = (colTotales[col] || 0).toLocaleString();
+        td.textContent = (colTotales[col] || 0).toLocaleString();
+    });
+
+    // Actualizar la fila de diferencia contra el total de la PECOSA
+    document.querySelectorAll('.col-diferencia').forEach(td => {
+        const col = td.dataset.col;
+        const pecosaTotal = parseInt(td.dataset.pecosa) || 0;
+        td.textContent = (pecosaTotal - (colTotales[col] || 0)).toLocaleString();
     });
 
     const rowCells = document.querySelectorAll('.row-total');
