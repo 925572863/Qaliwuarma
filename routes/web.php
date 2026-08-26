@@ -50,6 +50,20 @@ Route::get('/check-pecosa-primaria/{token}', function (string $token) {
     return response()->json(['total_filas' => $filas->count(), 'grupos_duplicados' => $duplicados->count(), 'detalle' => $duplicados]);
 });
 
+// TEMPORAL: simular exactamente lo que carga la pagina de Distribucion
+// Primaria (mismos nombres/valores de columnas que vera el usuario).
+Route::get('/check-distribucion-primaria/{token}', function (string $token) {
+    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
+        abort(404);
+    }
+    $productos = \Illuminate\Support\Facades\DB::table('pecosa_primaria')->orderBy('descripcion')->get()
+        ->map(fn($p) => [
+            'id' => $p->id, 'nombre' => $p->descripcion, 'unid' => $p->unid,
+            'presentacion' => $p->presentacion, 'cant_total' => (int) $p->cant,
+        ]);
+    return response()->json(['cantidad_columnas' => $productos->count(), 'columnas' => $productos->values()]);
+});
+
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
