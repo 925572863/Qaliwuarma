@@ -322,6 +322,13 @@ class PecosaPrimariaController extends Controller
      */
     private function sumarSiYaExiste(string $tabla, string $descripcion, ?string $marca, ?string $lote, ?string $nombrePecosa, int $cant, float $presentacion, $now): bool
     {
+        // El nombre de la Pecosa NO entra en esta comparación: si el mismo
+        // producto+marca+lote ya existe (venga de la "Pecosa" que venga), es
+        // el mismo lote físico y se suma. Antes se exigía también que
+        // coincidiera el nombre de la Pecosa, pero como cada subida sin
+        // nombre recibe uno automático distinto (fecha/hora), esa condición
+        // nunca coincidía entre dos subidas separadas de la misma foto y
+        // terminaba duplicando productos en vez de sumarlos.
         $existente = \Illuminate\Support\Facades\DB::table($tabla)
             ->where('descripcion', $descripcion)
             ->where(function ($q) use ($marca) {
@@ -329,9 +336,6 @@ class PecosaPrimariaController extends Controller
             })
             ->where(function ($q) use ($lote) {
                 $lote === null ? $q->whereNull('lote') : $q->where('lote', $lote);
-            })
-            ->where(function ($q) use ($nombrePecosa) {
-                $nombrePecosa === null ? $q->whereNull('nombre_pecosa') : $q->where('nombre_pecosa', $nombrePecosa);
             })
             ->first();
 
