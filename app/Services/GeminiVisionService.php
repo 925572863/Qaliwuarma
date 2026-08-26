@@ -64,30 +64,51 @@ Responde ÚNICAMENTE con un array JSON, sin texto adicional, sin markdown:
 [{"cant":10,"unid":"BOLSA","descripcion":"ARROZ FORTIFICADO","marca":"ESPIGA PIURANA","presentacion":1.0,"lote":null}]
 PROMPT;
 
-        $response = Http::timeout(45)->post(
-            "https://generativelanguage.googleapis.com/v1beta/models/{$this->modelo}:generateContent?key={$this->apiKey}",
-            [
-                'contents' => [[
-                    'parts' => [
-                        ['text' => $prompt],
-                        ['inline_data' => ['mime_type' => $mime, 'data' => $data]],
-                    ],
-                ]],
-                'generationConfig' => [
-                    'temperature'     => 0.1,
-                    'maxOutputTokens' => 8000,
-                    // gemini-3.6-flash "piensa" antes de responder y esos tokens de
-                    // razonamiento cuentan contra maxOutputTokens. thinkingBudget=0
-                    // no es un valor válido para este modelo (da 400 INVALID_ARGUMENT,
-                    // confirmado contra la API real), así que se deja un presupuesto
-                    // bajo en vez de desactivarlo del todo.
-                    'thinkingConfig'  => ['thinkingBudget' => 300],
+        $payload = [
+            'contents' => [[
+                'parts' => [
+                    ['text' => $prompt],
+                    ['inline_data' => ['mime_type' => $mime, 'data' => $data]],
                 ],
-            ]
-        );
+            ]],
+            'generationConfig' => [
+                'temperature'     => 0.1,
+                'maxOutputTokens' => 8000,
+                // gemini-3.6-flash "piensa" antes de responder y esos tokens de
+                // razonamiento cuentan contra maxOutputTokens. thinkingBudget=0
+                // no es un valor válido para este modelo (da 400 INVALID_ARGUMENT,
+                // confirmado contra la API real), así que se deja un presupuesto
+                // bajo en vez de desactivarlo del todo.
+                'thinkingConfig'  => ['thinkingBudget' => 300],
+            ],
+        ];
+
+        // Google satura el modelo con frecuencia (503 "high demand") o a
+        // veces tarda en responder (504/524); son errores pasajeros, no un
+        // problema real de la foto. Se reintenta unas pocas veces con una
+        // pequeña espera antes de rendirse, para no obligar al usuario a
+        // volver a subir la foto manualmente por una saturación momentánea.
+        $intentos = 3;
+        $response = null;
+        for ($i = 1; $i <= $intentos; $i++) {
+            $response = Http::timeout(45)->post(
+                "https://generativelanguage.googleapis.com/v1beta/models/{$this->modelo}:generateContent?key={$this->apiKey}",
+                $payload
+            );
+
+            if ($response->successful()) break;
+
+            $reintentable = in_array($response->status(), [429, 500, 502, 503, 504]);
+            if (!$reintentable || $i === $intentos) break;
+
+            sleep(2 * $i); // espera creciente: 2s, 4s
+        }
 
         if (!$response->successful()) {
-            throw new \RuntimeException('Error al conectar con la IA de fotos: ' . $response->status() . ' - ' . substr($response->body(), 0, 300));
+            $mensaje = $response->status() === 503
+                ? 'La IA de Google está saturada por mucha demanda en este momento. Espera un minuto y vuelve a intentar.'
+                : 'Error al conectar con la IA de fotos: ' . $response->status() . ' - ' . substr($response->body(), 0, 300);
+            throw new \RuntimeException($mensaje);
         }
 
         $texto = (string) $response->json('candidates.0.content.parts.0.text', '');
