@@ -335,8 +335,11 @@ class AlumnoController extends Controller
             if (in_array($header, $possibleNames)) return $idx;
         }
         // Paso 2: coincidencia parcial, excluyendo columnas tipo "tipo_de_*"
+        // y "estado_*" (ej. "Estado Matrícula" = DEFINITIVA/TRASLADADO no
+        // debe confundirse con la columna de código/DNI solo porque
+        // contiene la palabra "matricula").
         foreach ($normalizedHeaders as $idx => $header) {
-            if ($header === '' || str_starts_with($header, 'tipo_')) continue;
+            if ($header === '' || str_starts_with($header, 'tipo_') || str_starts_with($header, 'estado_')) continue;
             foreach ($possibleNames as $name) {
                 if (str_contains($header, $name) || str_contains($name, $header)) {
                     return $idx;
