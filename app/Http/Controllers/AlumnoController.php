@@ -293,7 +293,9 @@ class AlumnoController extends Controller
             preg_match('/(?:seccion|aula|sala)\s*:?\s*([a-z])\b/i', $norm, $m2)) {
             return $m1[1] . ' AÑOS ' . strtoupper($m2[1]);
         }
-        if (preg_match('/(\d+)\s*anos?\s+([a-z])\b/i', $norm, $m)) {
+        // Admite "3 años A", "3 años-A", "3años-A": el separador entre
+        // "años" y la letra de sección puede ser espacio, guion, o nada.
+        if (preg_match('/(\d+)\s*anos?\s*[-\s]*([a-z])\b/i', $norm, $m)) {
             return $m[1] . ' AÑOS ' . strtoupper($m[2]);
         }
         if (preg_match('/(?:seccion|aula|sala)\s*:?\s*([a-z])\b/i', $norm, $m) &&
