@@ -22,25 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: corrige GALLETA CON KIWICHA en "Pecosa 5" Primaria (3 -> 3105).
-Route::get('/fix-galleta-pecosa5/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-    $fila = \Illuminate\Support\Facades\DB::table('pecosa_primaria')
-        ->where('nombre_pecosa', 'Pecosa 5')
-        ->where('descripcion', 'GALLETA CON KIWICHA')
-        ->first();
-    if (!$fila) {
-        return response()->json(['error' => 'no encontrado']);
-    }
-    $anterior = $fila->cant;
-    $volumen = round(3105 * $fila->presentacion, 3);
-    \Illuminate\Support\Facades\DB::table('pecosa_primaria')->where('id', $fila->id)->update([
-        'cant' => 3105, 'volumen' => $volumen, 'stock_actual' => $volumen, 'updated_at' => now(),
-    ]);
-    return response()->json(['corregido' => true, 'anterior' => $anterior, 'nuevo' => 3105]);
-});
 
 
 
