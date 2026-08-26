@@ -260,7 +260,7 @@ class PecosaInicialController extends Controller
                 if ($idx === 0) continue; // saltar encabezado
                 if (empty(trim((string)($fila[2] ?? '')))) continue; // saltar filas vacías
 
-                $cant         = intval($fila[0] ?? 0);
+                $cant         = $this->parseCantidad($fila[0] ?? 0);
                 $unid         = strtoupper(trim((string)($fila[1] ?? '')));
                 $descripcion  = strtoupper(trim((string)($fila[2] ?? '')));
                 $marca        = strtoupper(trim((string)($fila[3] ?? ''))) ?: null;
@@ -380,6 +380,23 @@ class PecosaInicialController extends Controller
     private function nombrePecosaAutomatico(): string
     {
         return 'Pecosa ' . now()->format('d/m/Y H:i:s');
+    }
+
+    /**
+     * Interpreta la cantidad de un Excel tolerando el punto usado como
+     * separador de miles (formato peruano: "6.210" = seis mil doscientos
+     * diez, no "6.21"). Un intval()/floatval() normal trunca "6.210" a 6,
+     * porque interpreta el punto como separador decimal — este helper
+     * detecta el patrón de agrupación de miles (grupos de 3 dígitos después
+     * del punto) y lo quita antes de convertir a entero.
+     */
+    private function parseCantidad($valor): int
+    {
+        $str = trim((string) $valor);
+        if (preg_match('/^\d{1,3}(\.\d{3})+$/', $str)) {
+            $str = str_replace('.', '', $str);
+        }
+        return intval($str);
     }
 
     /**
