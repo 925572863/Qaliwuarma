@@ -22,34 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: corrige 2 productos mal leidos por la IA en "Pecosa 5" de Primaria.
-Route::get('/fix-pecosa5-primaria/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-    $correcciones = [
-        ['CONSERVA DE CARNE DE POLLO', 'RAPISABOR', 1225],
-        ['PRODUCTO LACTEO RECONSTITUIDO', 'GLORIA', 1920],
-    ];
-    $resultado = [];
-    foreach ($correcciones as [$descripcion, $marca, $cantCorrecta]) {
-        $fila = \Illuminate\Support\Facades\DB::table('pecosa_primaria')
-            ->where('nombre_pecosa', 'Pecosa 5')
-            ->where('descripcion', $descripcion)
-            ->where('marca', $marca)
-            ->first();
-        if (!$fila) {
-            $resultado[] = "$descripcion / $marca: NO ENCONTRADO";
-            continue;
-        }
-        $volumen = round($cantCorrecta * $fila->presentacion, 3);
-        \Illuminate\Support\Facades\DB::table('pecosa_primaria')->where('id', $fila->id)->update([
-            'cant' => $cantCorrecta, 'volumen' => $volumen, 'stock_actual' => $volumen, 'updated_at' => now(),
-        ]);
-        $resultado[] = "$descripcion / $marca: {$fila->cant} -> $cantCorrecta";
-    }
-    return response()->json($resultado);
-});
 
 
 
