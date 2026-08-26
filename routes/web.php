@@ -37,6 +37,19 @@ Route::get('/borrar-solo-distribucion-primaria/{token}', function (string $token
     return response()->json(['borrados' => $borrados]);
 });
 
+// TEMPORAL: verificar cuantas filas y duplicados hay ahora en Pecosa Primaria.
+Route::get('/check-pecosa-primaria/{token}', function (string $token) {
+    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
+        abort(404);
+    }
+    $filas = \Illuminate\Support\Facades\DB::table('pecosa_primaria')->orderBy('descripcion')->get();
+    $grupos = $filas->groupBy(fn($f) => $f->descripcion . '|' . $f->marca . '|' . $f->presentacion);
+    $duplicados = $grupos->filter(fn($g) => $g->count() > 1)->map(fn($g) => $g->map(fn($f) => [
+        'id' => $f->id, 'descripcion' => $f->descripcion, 'marca' => $f->marca, 'presentacion' => $f->presentacion, 'cant' => $f->cant, 'lote' => $f->lote,
+    ]))->values();
+    return response()->json(['total_filas' => $filas->count(), 'grupos_duplicados' => $duplicados->count(), 'detalle' => $duplicados]);
+});
+
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
