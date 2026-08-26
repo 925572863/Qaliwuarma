@@ -88,7 +88,9 @@ class PecosaInicialController extends Controller
         ]);
 
         $filas        = $request->input('filas', []);
-        $nombrePecosa = $request->input('nombre_pecosa') ?: $this->nombrePecosaAutomatico();
+        $nombrePecosaInput = $request->input('nombre_pecosa');
+            $nombreEsAutomatico = empty($nombrePecosaInput);
+            $nombrePecosa = $nombrePecosaInput ?: $this->nombrePecosaAutomatico();
         $fechaEntrega = $request->input('fecha_entrega') ?: null;
         $now     = now();
         $nuevos  = 0;
@@ -105,7 +107,7 @@ class PecosaInicialController extends Controller
             $lote         = isset($fila['lote']) && $fila['lote'] !== '' ? $fila['lote'] : null;
             $fechaVenc    = isset($fila['fecha_vencimiento']) && $fila['fecha_vencimiento'] !== '' ? $fila['fecha_vencimiento'] : null;
 
-            if ($this->sumarSiYaExiste('pecosa_inicial', $descripcion, $marca, $lote, $nombrePecosa, $cant, $presentacion, $now)) {
+            if ($this->sumarSiYaExiste('pecosa_inicial', $descripcion, $marca, $lote, $nombrePecosa, $nombreEsAutomatico, $cant, $presentacion, $now)) {
                 $sumados++;
             } else {
                 \Illuminate\Support\Facades\DB::table('pecosa_inicial')->insert([
@@ -245,7 +247,9 @@ class PecosaInicialController extends Controller
             $hoja        = $spreadsheet->getActiveSheet();
             $filas       = $hoja->toArray(null, true, true, false);
 
-            $nombrePecosa = $request->input('nombre_pecosa') ?: $this->nombrePecosaAutomatico();
+            $nombrePecosaInput = $request->input('nombre_pecosa');
+            $nombreEsAutomatico = empty($nombrePecosaInput);
+            $nombrePecosa = $nombrePecosaInput ?: $this->nombrePecosaAutomatico();
             $fechaEntrega = $request->input('fecha_entrega') ?: null;
             $now     = now();
             $errores = [];
@@ -268,7 +272,7 @@ class PecosaInicialController extends Controller
                     continue;
                 }
 
-                if ($this->sumarSiYaExiste('pecosa_inicial', $descripcion, $marca, $lote, $nombrePecosa, $cant, $presentacion, $now)) {
+                if ($this->sumarSiYaExiste('pecosa_inicial', $descripcion, $marca, $lote, $nombrePecosa, $nombreEsAutomatico, $cant, $presentacion, $now)) {
                     $sumados++;
                 } else {
                     \Illuminate\Support\Facades\DB::table('pecosa_inicial')->insert([
@@ -326,14 +330,16 @@ class PecosaInicialController extends Controller
                 return back()->with('error', 'No se reconoció ningún producto en la foto. Intenta con una foto más clara y bien iluminada.');
             }
 
-            $nombrePecosa = $request->input('nombre_pecosa') ?: $this->nombrePecosaAutomatico();
+            $nombrePecosaInput = $request->input('nombre_pecosa');
+            $nombreEsAutomatico = empty($nombrePecosaInput);
+            $nombrePecosa = $nombrePecosaInput ?: $this->nombrePecosaAutomatico();
             $fechaEntrega = $request->input('fecha_entrega') ?: null;
             $now     = now();
             $nuevos  = 0;
             $sumados = 0;
 
             foreach ($productos as $p) {
-                if ($this->sumarSiYaExiste('pecosa_inicial', $p['descripcion'], $p['marca'], $p['lote'], $nombrePecosa, $p['cant'], $p['presentacion'], $now)) {
+                if ($this->sumarSiYaExiste('pecosa_inicial', $p['descripcion'], $p['marca'], $p['lote'], $nombrePecosa, $nombreEsAutomatico, $p['cant'], $p['presentacion'], $now)) {
                     $sumados++;
                 } else {
                     \Illuminate\Support\Facades\DB::table('pecosa_inicial')->insert([
@@ -384,11 +390,14 @@ class PecosaInicialController extends Controller
      * mezcle con una anterior de nombre distinto. Devuelve true si sumó a uno
      * existente, false si no encontró coincidencia (debe insertarse aparte).
      */
-    private function sumarSiYaExiste(string $tabla, string $descripcion, ?string $marca, ?string $lote, ?string $nombrePecosa, int $cant, float $presentacion, $now): bool
+    private function sumarSiYaExiste(string $tabla, string $descripcion, ?string $marca, ?string $lote, ?string $nombrePecosa, bool $nombreEsAutomatico, int $cant, float $presentacion, $now): bool
     {
-        // El nombre de la Pecosa NO entra en esta comparación: si el mismo
-        // producto+marca+lote ya existe, es el mismo lote físico y se suma,
-        // sin importar bajo que nombre de Pecosa quedó guardado antes.
+        // Si el nombre de la Pecosa es automático (el usuario no escribió
+        // uno), se compara solo por descripcion+marca+lote, para que subir
+        // la misma foto dos veces sin ponerle nombre sume en vez de
+        // duplicar. Si el usuario SÍ escribió un nombre a propósito, ese
+        // nombre entra en la comparación: nunca se mezcla con una Pecosa de
+        // nombre distinto aunque el lote coincida.
         $existente = \Illuminate\Support\Facades\DB::table($tabla)
             ->where('descripcion', $descripcion)
             ->where(function ($q) use ($marca) {
@@ -397,6 +406,7 @@ class PecosaInicialController extends Controller
             ->where(function ($q) use ($lote) {
                 $lote === null ? $q->whereNull('lote') : $q->where('lote', $lote);
             })
+            ->when(!$nombreEsAutomatico, fn($q) => $q->where('nombre_pecosa', $nombrePecosa))
             ->first();
 
         if (!$existente) return false;

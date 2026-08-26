@@ -22,25 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: ver estado actual de Pecosa Inicial y Primaria (para diagnosticar
-// por que una subida reciente no aparece).
-Route::get('/check-pecosas-ahora/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-    $resultado = [];
-    foreach (['pecosa_inicial', 'pecosa_primaria'] as $tabla) {
-        $filas = \Illuminate\Support\Facades\DB::table($tabla)->orderByDesc('created_at')->get();
-        $resultado[$tabla] = [
-            'total' => $filas->count(),
-            'ultimas_5' => $filas->take(5)->map(fn($f) => [
-                'id' => $f->id, 'descripcion' => $f->descripcion, 'nombre_pecosa' => $f->nombre_pecosa,
-                'cant' => $f->cant, 'created_at' => $f->created_at,
-            ]),
-        ];
-    }
-    return response()->json($resultado);
-});
 
 
 
