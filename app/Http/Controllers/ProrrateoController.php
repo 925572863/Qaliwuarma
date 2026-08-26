@@ -39,37 +39,98 @@ class ProrrateoController extends Controller
             ])->toArray();
     }
 
+    /**
+     * Reparte $total de forma proporcional a $pesos (alumnos por sección)
+     * garantizando que la suma de las partes sea EXACTAMENTE $total (método
+     * del resto mayor / largest remainder). Un round() simple por sección no
+     * garantiza esto: por redondeos independientes puede sobrar o faltar 1-2
+     * unidades frente al total real de la PECOSA (fila "Diferencia" != 0).
+     *
+     * @param int $total
+     * @param array<int|string, int> $pesos clave => alumnos de esa sección
+     * @return array<int|string, int> clave => cantidad asignada
+     */
+    private function distribuirExacto(int $total, array $pesos): array
+    {
+        $sumaPesos = array_sum($pesos);
+        if ($sumaPesos <= 0 || $total <= 0) {
+            return array_fill_keys(array_keys($pesos), 0);
+        }
+
+        $partes = [];
+        $asignado = 0;
+        foreach ($pesos as $clave => $peso) {
+            $exacto = $total * $peso / $sumaPesos;
+            $piso   = (int) floor($exacto);
+            $partes[$clave] = ['cant' => $piso, 'resto' => $exacto - $piso];
+            $asignado += $piso;
+        }
+
+        // Reparte las unidades que faltan (por el piso de cada una) a las
+        // secciones con mayor resto decimal, hasta cuadrar el total exacto.
+        $faltan = $total - $asignado;
+        if ($faltan > 0) {
+            $ordenPorResto = $partes;
+            uasort($ordenPorResto, fn($a, $b) => $b['resto'] <=> $a['resto']);
+            foreach (array_keys($ordenPorResto) as $clave) {
+                if ($faltan <= 0) break;
+                $partes[$clave]['cant']++;
+                $faltan--;
+            }
+        }
+
+        $resultado = [];
+        foreach ($partes as $clave => $p) {
+            $resultado[$clave] = $p['cant'];
+        }
+        return $resultado;
+    }
+
     private function construirTabla(array $secciones, array $productos, $guardado = null): array
     {
         $totalAlumnos     = array_sum(array_column($secciones, 'alumnos'));
         $hayGuardado      = $guardado !== null && $guardado->isNotEmpty();
-        $data             = [];
+        $data             = array_fill_keys(array_keys($secciones), null);
         $totalesProductos = array_fill(0, count($productos), 0);
         $totalGeneral     = 0;
 
-        foreach ($secciones as $sec) {
-            $fila = ['seccion' => $sec['nombre'], 'alumnos' => $sec['alumnos'], 'items' => [], 'total' => 0];
-
-            foreach ($productos as $index => $prod) {
-                if ($hayGuardado && isset($guardado[$sec['nombre']])) {
-                    $reg  = $guardado[$sec['nombre']]->firstWhere('pecosa_primaria_id', $prod['id']);
-                    $cant = $reg ? (int) $reg->cantidad : 0;
-                } else {
-                    $cant = $totalAlumnos > 0
-                        ? (int) round($prod['cant_total'] * $sec['alumnos'] / $totalAlumnos)
-                        : 0;
-                }
-
-                $fila['items'][]          = $cant;
-                $fila['total']           += $cant;
-                $totalesProductos[$index] += $cant;
-            }
-
-            $totalGeneral += $fila['total'];
-            $data[] = $fila;
+        // Pesos (alumnos) por sección, indexados por posición, para repartir
+        // cada producto exacto entre todas las secciones a la vez.
+        $pesos = [];
+        foreach ($secciones as $i => $sec) {
+            $pesos[$i] = $sec['alumnos'];
         }
 
-        return [$data, $totalesProductos, $totalGeneral, $totalAlumnos];
+        // Inicializa las filas.
+        foreach ($secciones as $i => $sec) {
+            $data[$i] = ['seccion' => $sec['nombre'], 'alumnos' => $sec['alumnos'], 'items' => [], 'total' => 0];
+        }
+
+        foreach ($productos as $index => $prod) {
+            if ($hayGuardado) {
+                foreach ($secciones as $i => $sec) {
+                    $reg  = ($guardado[$sec['nombre']] ?? null)?->firstWhere('pecosa_primaria_id', $prod['id']);
+                    $cant = $reg ? (int) $reg->cantidad : 0;
+                    $data[$i]['items'][]        = $cant;
+                    $data[$i]['total']         += $cant;
+                    $totalesProductos[$index]  += $cant;
+                }
+            } else {
+                $reparto = $this->distribuirExacto($prod['cant_total'], $pesos);
+                foreach ($secciones as $i => $sec) {
+                    $cant = $reparto[$i] ?? 0;
+                    $data[$i]['items'][]        = $cant;
+                    $data[$i]['total']         += $cant;
+                    $totalesProductos[$index]  += $cant;
+                }
+            }
+        }
+
+        foreach ($data as $fila) {
+            $totalGeneral += $fila['total'];
+        }
+
+        return [array_values($data), $totalesProductos, $totalGeneral, $totalAlumnos];
     }
 
     // ── Vistas ───────────────────────────────────────────────────────────────
