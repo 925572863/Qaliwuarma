@@ -103,12 +103,12 @@ class ProrrateoInicialController extends Controller
                     $totalesProductos[$index]  += $cant;
                 }
             } else {
-                $reparto = $this->distribuirExacto($prod['cant_total'], $pesos);
+                // La tabla arranca en 0: el usuario reparte a mano cuánto le
+                // da a cada aula, y la fila "CANTIDAD" del encabezado va
+                // descontando en vivo lo que queda disponible de la PECOSA.
                 foreach ($secciones as $i => $sec) {
-                    $cant = $reparto[$i] ?? 0;
-                    $data[$i]['items'][]        = $cant;
-                    $data[$i]['total']         += $cant;
-                    $totalesProductos[$index]  += $cant;
+                    $data[$i]['items'][]       = 0;
+                    $totalesProductos[$index] += 0;
                 }
             }
         }

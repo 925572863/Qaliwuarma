@@ -62,14 +62,17 @@
                             </th>
                         @endforeach
                     </tr>
-                    {{-- Fila 3: cantidad total PECOSA (celeste, como el modelo), con el gran total de todos los productos juntos --}}
+                    {{-- Fila 3: CANTIDAD disponible de la PECOSA — va descontando en
+                         vivo (JS) a medida que se reparte a cada aula. Empieza
+                         mostrando el total de la PECOSA porque la tabla arranca en 0. --}}
                     <tr class="bg-cyan-400 text-gray-900 text-[9px] font-bold">
-                        @foreach($productos as $prod)
-                            <td class="px-2 py-1 border border-cyan-500 text-center">
+                        @foreach($productos as $i => $prod)
+                            <td class="px-2 py-1 border border-cyan-500 text-center cantidad-restante"
+                                data-col="{{ $i }}" data-pecosa="{{ $prod['cant_total'] }}">
                                 {{ number_format($prod['cant_total']) }}
                             </td>
                         @endforeach
-                        <td class="px-3 py-1 border border-cyan-500 text-center text-sm bg-cyan-500">
+                        <td class="px-3 py-1 border border-cyan-500 text-center text-sm bg-cyan-500" id="cantidad-restante-total">
                             {{ number_format(array_sum(array_column($productos, 'cant_total'))) }}
                         </td>
                     </tr>
@@ -209,6 +212,20 @@ function recalcular() {
         const pecosaTotal = parseInt(td.dataset.pecosa) || 0;
         td.textContent = (pecosaTotal - (colTotales[col] || 0)).toLocaleString();
     });
+
+    // Actualizar la fila "CANTIDAD" del encabezado: cuanto queda disponible
+    // de la PECOSA a medida que se va repartiendo a cada aula.
+    let restanteTotal = 0;
+    document.querySelectorAll('.cantidad-restante').forEach(td => {
+        const col = td.dataset.col;
+        const pecosaTotal = parseInt(td.dataset.pecosa) || 0;
+        const restante = pecosaTotal - (colTotales[col] || 0);
+        td.textContent = restante.toLocaleString();
+        td.classList.toggle('text-red-700', restante < 0);
+        restanteTotal += restante;
+    });
+    const totalCell = document.getElementById('cantidad-restante-total');
+    if (totalCell) totalCell.textContent = restanteTotal.toLocaleString();
 
     const rowCells = document.querySelectorAll('.row-total');
     rowCells.forEach((td, i) => {

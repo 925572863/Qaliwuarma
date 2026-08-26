@@ -45,7 +45,7 @@ class ProrrateoControllerTest extends TestCase
         $this->get(route('pecosa.primaria.prorrateo'))->assertRedirect(route('login'));
     }
 
-    public function test_primaria_reparte_proporcionalmente_al_numero_de_alumnos(): void
+    public function test_primaria_arranca_en_cero_sin_reparto_automatico(): void
     {
         $user = User::factory()->create();
         $this->alumno('1º A', 1); // 1 alumno
@@ -55,12 +55,13 @@ class ProrrateoControllerTest extends TestCase
         $response = $this->actingAs($user)->get(route('pecosa.primaria.prorrateo'));
 
         $response->assertOk();
-        // Total de 4 alumnos: sección A (1) recibe 10, sección B (3) recibe 30
+        // La tabla ya no reparte solo; arranca en 0 y el usuario llena a mano
+        // cuánto le da a cada aula (el reparto proporcional automático se quitó).
         $data = $response->viewData('data');
         $filaA = collect($data)->firstWhere('seccion', '1º A');
         $filaB = collect($data)->firstWhere('seccion', '1º B');
-        $this->assertSame(10, $filaA['items'][0]);
-        $this->assertSame(30, $filaB['items'][0]);
+        $this->assertSame(0, $filaA['items'][0]);
+        $this->assertSame(0, $filaB['items'][0]);
     }
 
     public function test_guardar_crea_version_registros_y_descuenta_stock(): void
