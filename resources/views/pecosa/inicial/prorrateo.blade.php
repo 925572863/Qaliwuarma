@@ -42,30 +42,30 @@
         <div class="overflow-x-auto">
             <table class="w-full text-sm border-collapse" id="tabla-distribucion">
                 <thead>
-                    {{-- Fila 1: nombres de productos --}}
-                    <tr class="bg-gray-800 text-white">
-                        <th rowspan="3" class="px-4 py-3 border border-gray-700 font-bold uppercase text-center sticky left-0 z-20 bg-gray-800 text-xs">
-                            SECCIÓN<br><span class="font-normal text-gray-400">(alumnos)</span>
+                    {{-- Fila 1: nombres de productos (amarillo, como el modelo) --}}
+                    <tr class="bg-yellow-400 text-gray-900">
+                        <th rowspan="3" class="px-4 py-3 border border-yellow-500 font-bold uppercase text-center sticky left-0 z-20 bg-yellow-400 text-xs">
+                            PRODUCTO<br><span class="font-normal text-gray-700 normal-case">(sección / alumnos)</span>
                         </th>
                         @foreach($productos as $prod)
-                            <th class="px-2 py-2 border border-gray-700 text-center text-[9px] uppercase leading-tight">
+                            <th class="px-2 py-2 border border-yellow-500 text-center text-[9px] uppercase leading-tight">
                                 {{ $prod['nombre'] }}
                             </th>
                         @endforeach
-                        <th rowspan="3" class="px-3 py-3 border border-gray-700 font-bold uppercase text-center bg-gray-900 text-xs">TOTAL</th>
+                        <th rowspan="3" class="px-3 py-3 border border-gray-700 font-bold uppercase text-center bg-gray-800 text-white text-xs">TOTAL</th>
                     </tr>
-                    {{-- Fila 2: unidad y presentación --}}
-                    <tr class="bg-gray-700 text-gray-300 text-[9px]">
+                    {{-- Fila 2: presentación --}}
+                    <tr class="bg-white text-gray-700 text-[9px]">
                         @foreach($productos as $prod)
-                            <th class="px-2 py-1 border border-gray-600 text-center italic">
+                            <th class="px-2 py-1 border border-gray-300 text-center italic">
                                 {{ $prod['unid'] }} · {{ $prod['presentacion'] }}
                             </th>
                         @endforeach
                     </tr>
-                    {{-- Fila 3: cantidad total PECOSA --}}
-                    <tr class="bg-orange-700 text-white text-[9px] font-bold">
+                    {{-- Fila 3: cantidad total PECOSA (celeste, como el modelo) --}}
+                    <tr class="bg-cyan-400 text-gray-900 text-[9px] font-bold">
                         @foreach($productos as $prod)
-                            <td class="px-2 py-1 border border-orange-600 text-center">
+                            <td class="px-2 py-1 border border-cyan-500 text-center">
                                 {{ number_format($prod['cant_total']) }}
                             </td>
                         @endforeach

@@ -22,23 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: reconfirmar estado actual de Pecosa Primaria en vivo.
-Route::get('/reconfirmar-pecosa/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-    $filas = \Illuminate\Support\Facades\DB::table('pecosa_primaria')->orderBy('descripcion')->get();
-    return response()->json([
-        'timestamp_servidor' => now()->toDateTimeString(),
-        'total_filas' => $filas->count(),
-        'filas' => $filas->map(fn($f) => [
-            'id' => $f->id, 'descripcion' => $f->descripcion, 'marca' => $f->marca,
-            'presentacion' => $f->presentacion, 'cant' => $f->cant, 'lote' => $f->lote,
-            'updated_at' => $f->updated_at,
-        ]),
-    ]);
-});
-
 
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
