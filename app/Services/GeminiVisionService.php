@@ -50,6 +50,16 @@ Para cada producto determina:
 
 Si no puedes leer un dato con certeza, usa tu mejor estimación razonable, nunca inventes productos que no aparecen.
 
+MUY IMPORTANTE: la tabla de productos suele tener entre 15 y 25 filas. Debes
+extraer TODAS las filas de la tabla, de la primera a la última, sin saltarte
+ninguna — incluso las que tengan códigos de lote largos, con barras "/" o "\",
+con espacios, o con varios números juntos (ej. "142 26 \ 148 26" o
+"KTFBOLOTE3FP:07.05.2026FV:07.05.2030"). Un lote con formato raro NUNCA es
+motivo para omitir esa fila: cópialo tal cual se ve, como texto simple, y
+sigue con la siguiente fila. Antes de responder, cuenta cuántas filas tiene
+la tabla en la imagen y verifica que tu array tenga exactamente esa cantidad
+de elementos.
+
 Responde ÚNICAMENTE con un array JSON, sin texto adicional, sin markdown:
 [{"cant":10,"unid":"BOLSA","descripcion":"ARROZ FORTIFICADO","marca":"ESPIGA PIURANA","presentacion":1.0,"lote":null}]
 PROMPT;
