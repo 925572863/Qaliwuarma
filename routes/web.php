@@ -22,20 +22,24 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: ver todos los productos de Pecosa 5 Primaria con stock_actual
-// distinto de volumen (indica una distribucion ya guardada, o datos corruptos).
-Route::get('/check-stock-desajustado/{token}', function (string $token) {
+// TEMPORAL: corrige lote y stock_actual del FRIJOL en Pecosa 5 Primaria.
+Route::get('/fix-frijol/{token}', function (string $token) {
     if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
         abort(404);
     }
-    $filas = \Illuminate\Support\Facades\DB::table('pecosa_primaria')
-        ->where('nombre_pecosa', 'Pecosa 5')->get()
-        ->filter(fn($f) => round((float)$f->stock_actual, 3) !== round((float)$f->volumen, 3))
-        ->map(fn($f) => [
-            'id' => $f->id, 'descripcion' => $f->descripcion, 'volumen' => $f->volumen,
-            'stock_actual' => $f->stock_actual, 'lote' => $f->lote,
-        ]);
-    return response()->json($filas->values());
+    $fila = \Illuminate\Support\Facades\DB::table('pecosa_primaria')
+        ->where('nombre_pecosa', 'Pecosa 5')
+        ->where('descripcion', 'FRIJOL')
+        ->first();
+    if (!$fila) {
+        return response()->json(['error' => 'no encontrado']);
+    }
+    \Illuminate\Support\Facades\DB::table('pecosa_primaria')->where('id', $fila->id)->update([
+        'lote' => '0062026',
+        'stock_actual' => $fila->volumen,
+        'updated_at' => now(),
+    ]);
+    return response()->json(['corregido' => true, 'id' => $fila->id]);
 });
 
 
