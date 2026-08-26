@@ -22,6 +22,24 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// TEMPORAL: ver estado real de alumnos (totales y ultima actualizacion).
+Route::get('/check-alumnos-ahora/{token}', function (string $token) {
+    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
+        abort(404);
+    }
+    $resultado = [];
+    foreach (['inicial', 'primaria'] as $nivel) {
+        $q = \Illuminate\Support\Facades\DB::table('alumnos')->where('nivel', $nivel);
+        $resultado[$nivel] = [
+            'total' => (clone $q)->count(),
+            'ultima_creacion' => (clone $q)->max('created_at'),
+            'por_aula' => (clone $q)->selectRaw('carrera, semestre, COUNT(*) as total')
+                ->groupBy('carrera', 'semestre')->orderBy('carrera')->get(),
+        ];
+    }
+    return response()->json($resultado);
+});
+
 // TEMPORAL: verificar que OPENAI_API_KEY este configurada y funcione.
 Route::get('/check-openai/{token}', function (string $token) {
     if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
