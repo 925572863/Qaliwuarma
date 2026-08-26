@@ -22,6 +22,30 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// TEMPORAL: ver y corregir CEREAL EXTRUIDO en Pecosa Inicial a 1940.
+Route::get('/fix-cereal-inicial/{token}', function (string $token) {
+    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
+        abort(404);
+    }
+    $filas = \Illuminate\Support\Facades\DB::table('pecosa_inicial')
+        ->where('descripcion', 'CEREAL EXTRUIDO')->get();
+
+    if ($filas->isEmpty()) {
+        return response()->json(['error' => 'no hay CEREAL EXTRUIDO en pecosa_inicial', 'total_filas_inicial' => \Illuminate\Support\Facades\DB::table('pecosa_inicial')->count()]);
+    }
+
+    $actualizados = [];
+    foreach ($filas as $fila) {
+        $volumen = round(1940 * $fila->presentacion, 3);
+        \Illuminate\Support\Facades\DB::table('pecosa_inicial')->where('id', $fila->id)->update([
+            'cant' => 1940, 'volumen' => $volumen, 'stock_actual' => $volumen, 'updated_at' => now(),
+        ]);
+        $actualizados[] = ['id' => $fila->id, 'cant_anterior' => $fila->cant, 'nombre_pecosa' => $fila->nombre_pecosa];
+    }
+
+    return response()->json(['actualizados' => $actualizados]);
+});
+
 
 
 // TEMPORAL: ver estado real de alumnos (totales y ultima actualizacion).
