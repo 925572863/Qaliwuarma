@@ -22,23 +22,33 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: verificar la suma total de productos de Pecosa Primaria (mas reciente).
-Route::get('/check-suma-primaria/{token}', function (string $token) {
+// TEMPORAL: corrige 2 productos mal leidos por la IA en "Pecosa 5" de Primaria.
+Route::get('/fix-pecosa5-primaria/{token}', function (string $token) {
     if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
         abort(404);
     }
-    $pecosaMasReciente = \Illuminate\Support\Facades\DB::table('pecosa_primaria')
-        ->whereNotNull('nombre_pecosa')->select('nombre_pecosa', 'created_at')->get()
-        ->groupBy('nombre_pecosa')->map(fn($g) => $g->max('created_at'))->sortDesc()->keys()->first();
-
-    $filas = \Illuminate\Support\Facades\DB::table('pecosa_primaria')
-        ->where('nombre_pecosa', $pecosaMasReciente)->orderBy('descripcion')->get();
-
-    return response()->json([
-        'pecosa_mas_reciente' => $pecosaMasReciente,
-        'productos' => $filas->map(fn($f) => ['descripcion' => $f->descripcion, 'marca' => $f->marca, 'cant' => $f->cant]),
-        'suma_total' => $filas->sum('cant'),
-    ]);
+    $correcciones = [
+        ['CONSERVA DE CARNE DE POLLO', 'RAPISABOR', 1225],
+        ['PRODUCTO LACTEO RECONSTITUIDO', 'GLORIA', 1920],
+    ];
+    $resultado = [];
+    foreach ($correcciones as [$descripcion, $marca, $cantCorrecta]) {
+        $fila = \Illuminate\Support\Facades\DB::table('pecosa_primaria')
+            ->where('nombre_pecosa', 'Pecosa 5')
+            ->where('descripcion', $descripcion)
+            ->where('marca', $marca)
+            ->first();
+        if (!$fila) {
+            $resultado[] = "$descripcion / $marca: NO ENCONTRADO";
+            continue;
+        }
+        $volumen = round($cantCorrecta * $fila->presentacion, 3);
+        \Illuminate\Support\Facades\DB::table('pecosa_primaria')->where('id', $fila->id)->update([
+            'cant' => $cantCorrecta, 'volumen' => $volumen, 'stock_actual' => $volumen, 'updated_at' => now(),
+        ]);
+        $resultado[] = "$descripcion / $marca: {$fila->cant} -> $cantCorrecta";
+    }
+    return response()->json($resultado);
 });
 
 
