@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PecosaPrimaria;
-use App\Services\GeminiVisionService;
+use App\Services\OpenAiVisionService;
 use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -254,7 +254,7 @@ class PecosaPrimariaController extends Controller
         ]);
 
         try {
-            $vision = new GeminiVisionService();
+            $vision = new OpenAiVisionService();
             if (!$vision->configurado()) {
                 return back()->with('error', 'La lectura de fotos con IA aún no está configurada en el servidor.');
             }

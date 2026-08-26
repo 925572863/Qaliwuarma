@@ -6,7 +6,7 @@ use App\Models\Alumno;
 use App\Models\PecosaInicial;
 use App\Models\RecetaNutricional;
 use App\Services\GeminiService;
-use App\Services\GeminiVisionService;
+use App\Services\OpenAiVisionService;
 use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -319,7 +319,7 @@ class PecosaInicialController extends Controller
         ]);
 
         try {
-            $vision = new GeminiVisionService();
+            $vision = new OpenAiVisionService();
             if (!$vision->configurado()) {
                 return back()->with('error', 'La lectura de fotos con IA aún no está configurada en el servidor.');
             }
