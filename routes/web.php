@@ -22,6 +22,18 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// TEMPORAL: ver el valor actual de FRIJOL en Pecosa 5 Primaria.
+Route::get('/check-frijol/{token}', function (string $token) {
+    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
+        abort(404);
+    }
+    $fila = \Illuminate\Support\Facades\DB::table('pecosa_primaria')
+        ->where('nombre_pecosa', 'Pecosa 5')
+        ->where('descripcion', 'FRIJOL')
+        ->first();
+    return response()->json($fila);
+});
+
 
 
 
