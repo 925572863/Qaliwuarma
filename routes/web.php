@@ -64,6 +64,37 @@ Route::get('/check-distribucion-primaria/{token}', function (string $token) {
     return response()->json(['cantidad_columnas' => $productos->count(), 'columnas' => $productos->values()]);
 });
 
+// TEMPORAL: fusiona duplicados restantes (mismo producto+marca+presentacion,
+// aunque el lote tenga formato ligeramente distinto), uniendo los lotes.
+Route::get('/fusionar-duplicados-2/{token}', function (string $token) {
+    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
+        abort(404);
+    }
+    $resultado = [];
+    foreach (['pecosa_inicial', 'pecosa_primaria'] as $tabla) {
+        $filas = \Illuminate\Support\Facades\DB::table($tabla)->orderBy('id')->get();
+        $grupos = $filas->groupBy(fn($f) => $f->descripcion . '|' . $f->marca . '|' . $f->presentacion);
+        $fusionados = 0;
+        foreach ($grupos as $grupo) {
+            if ($grupo->count() < 2) continue;
+            $primero = $grupo->first();
+            $restoIds = $grupo->skip(1)->pluck('id');
+            $lotesUnicos = $grupo->pluck('lote')->filter()->unique()->values()->implode(' \\ ');
+            \Illuminate\Support\Facades\DB::table($tabla)->where('id', $primero->id)->update([
+                'cant' => $grupo->sum('cant'),
+                'volumen' => $grupo->sum('volumen'),
+                'stock_actual' => $grupo->sum('stock_actual'),
+                'lote' => $lotesUnicos ?: null,
+                'updated_at' => now(),
+            ]);
+            \Illuminate\Support\Facades\DB::table($tabla)->whereIn('id', $restoIds)->delete();
+            $fusionados += $restoIds->count();
+        }
+        $resultado[$tabla] = $fusionados;
+    }
+    return response()->json(['filas_fusionadas' => $resultado]);
+});
+
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
