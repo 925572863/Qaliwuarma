@@ -83,31 +83,45 @@ PROMPT;
             ],
         ];
 
-        // Google satura el modelo con frecuencia (503 "high demand") o a
-        // veces tarda en responder (504/524); son errores pasajeros, no un
-        // problema real de la foto. Se reintenta unas pocas veces con una
-        // pequeña espera antes de rendirse, para no obligar al usuario a
-        // volver a subir la foto manualmente por una saturación momentánea.
-        $intentos = 3;
+        // Google satura el modelo con frecuencia (503 "high demand"); es un
+        // error pasajero, no un problema real de la foto. Se reintenta una
+        // vez con una espera corta antes de rendirse — OJO: Render corta la
+        // conexión si el request tarda demasiado (502 Bad Gateway), así que
+        // el timeout y la espera deben mantenerse bajos para que el intento
+        // completo (incluyendo el reintento) quede muy por debajo de ese
+        // límite.
+        $intentos = 2;
         $response = null;
+        $excepcion = null;
         for ($i = 1; $i <= $intentos; $i++) {
-            $response = Http::timeout(45)->post(
-                "https://generativelanguage.googleapis.com/v1beta/models/{$this->modelo}:generateContent?key={$this->apiKey}",
-                $payload
-            );
+            try {
+                $response = Http::timeout(25)->post(
+                    "https://generativelanguage.googleapis.com/v1beta/models/{$this->modelo}:generateContent?key={$this->apiKey}",
+                    $payload
+                );
+                $excepcion = null;
+            } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                $excepcion = $e;
+                $response = null;
+            }
 
-            if ($response->successful()) break;
+            if ($response && $response->successful()) break;
 
-            $reintentable = in_array($response->status(), [429, 500, 502, 503, 504]);
+            $status = $response?->status();
+            $reintentable = $excepcion !== null || in_array($status, [429, 500, 502, 503, 504]);
             if (!$reintentable || $i === $intentos) break;
 
-            sleep(2 * $i); // espera creciente: 2s, 4s
+            sleep(1);
         }
 
-        if (!$response->successful()) {
-            $mensaje = $response->status() === 503
+        if ($excepcion !== null) {
+            throw new \RuntimeException('No se pudo conectar con la IA de fotos (tardó demasiado en responder). Intenta de nuevo.');
+        }
+
+        if (!$response || !$response->successful()) {
+            $mensaje = $response?->status() === 503
                 ? 'La IA de Google está saturada por mucha demanda en este momento. Espera un minuto y vuelve a intentar.'
-                : 'Error al conectar con la IA de fotos: ' . $response->status() . ' - ' . substr($response->body(), 0, 300);
+                : 'Error al conectar con la IA de fotos: ' . $response?->status() . ' - ' . substr($response?->body() ?? '', 0, 300);
             throw new \RuntimeException($mensaje);
         }
 
