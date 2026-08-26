@@ -22,53 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: ver filas duplicadas de Pecosa Primaria (mismo producto+marca+
-// presentacion repetido en varias filas), antes de fusionarlas.
-Route::get('/diag-duplicados-pecosa/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-    $filas = \Illuminate\Support\Facades\DB::table('pecosa_primaria')->orderBy('descripcion')->get();
-    $grupos = $filas->groupBy(fn($f) => $f->descripcion . '|' . $f->marca . '|' . $f->presentacion);
-    $duplicados = $grupos->filter(fn($g) => $g->count() > 1)
-        ->map(fn($g) => $g->map(fn($f) => [
-            'id' => $f->id, 'descripcion' => $f->descripcion, 'marca' => $f->marca,
-            'presentacion' => $f->presentacion, 'cant' => $f->cant, 'lote' => $f->lote,
-        ]))
-        ->values();
-    return response()->json(['grupos_duplicados' => $duplicados->count(), 'detalle' => $duplicados]);
-});
-
-// TEMPORAL: fusiona filas duplicadas de Pecosa (mismo producto+marca+
-// presentacion+lote repetido), sumando cantidades y dejando una sola fila.
-Route::get('/fusionar-duplicados-pecosa/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-    $resultado = [];
-    foreach (['pecosa_inicial', 'pecosa_primaria'] as $tabla) {
-        $filas = \Illuminate\Support\Facades\DB::table($tabla)->orderBy('id')->get();
-        $grupos = $filas->groupBy(fn($f) => $f->descripcion . '|' . $f->marca . '|' . $f->presentacion . '|' . $f->lote);
-        $fusionados = 0;
-        foreach ($grupos as $grupo) {
-            if ($grupo->count() < 2) continue;
-            $primero = $grupo->first();
-            $restoIds = $grupo->skip(1)->pluck('id');
-            $sumaCant   = $grupo->sum('cant');
-            $sumaVolumen = $grupo->sum('volumen');
-            $sumaStock   = $grupo->sum('stock_actual');
-            \Illuminate\Support\Facades\DB::table($tabla)->where('id', $primero->id)->update([
-                'cant' => $sumaCant, 'volumen' => $sumaVolumen, 'stock_actual' => $sumaStock,
-                'updated_at' => now(),
-            ]);
-            \Illuminate\Support\Facades\DB::table($tabla)->whereIn('id', $restoIds)->delete();
-            $fusionados += $restoIds->count();
-        }
-        $resultado[$tabla] = $fusionados;
-    }
-    return response()->json(['filas_fusionadas' => $resultado]);
-});
-
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
