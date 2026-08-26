@@ -22,6 +22,21 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// TEMPORAL: listar todos los productos actuales de Pecosa Primaria.
+Route::get('/listar-pecosa-primaria/{token}', function (string $token) {
+    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
+        abort(404);
+    }
+    $filas = \Illuminate\Support\Facades\DB::table('pecosa_primaria')->orderBy('descripcion')->get();
+    return response()->json([
+        'total' => $filas->count(),
+        'productos' => $filas->map(fn($f) => [
+            'descripcion' => $f->descripcion, 'marca' => $f->marca, 'presentacion' => $f->presentacion,
+            'cant' => $f->cant, 'lote' => $f->lote, 'nombre_pecosa' => $f->nombre_pecosa,
+        ]),
+    ]);
+});
+
 
 
 // Exportar datos temporalmente (solo para migración)
