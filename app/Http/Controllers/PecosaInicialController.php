@@ -393,9 +393,11 @@ class PecosaInicialController extends Controller
     private function parseCantidad($valor): int
     {
         $str = trim((string) $valor);
-        if (preg_match('/^\d{1,3}(\.\d{3})+$/', $str)) {
-            $str = str_replace('.', '', $str);
-        }
+        // Quita cualquier "." o "," que actúe como separador de miles (va
+        // seguido de exactamente 3 dígitos y luego fin de texto u otro
+        // separador). Cubre "6.210", "6,210", "1.234.567", "1,234,567" y
+        // combinaciones, sin importar qué símbolo haya usado el Excel.
+        $str = preg_replace('/[.,](?=\d{3}(?:\D|$))/', '', $str);
         return intval($str);
     }
 
