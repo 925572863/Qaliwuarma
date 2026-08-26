@@ -22,6 +22,26 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// TEMPORAL: verificar que OPENAI_API_KEY este configurada y funcione.
+Route::get('/check-openai/{token}', function (string $token) {
+    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
+        abort(404);
+    }
+    $key = config('services.openai.key');
+    if (empty($key)) {
+        return response()->json(['configurado' => false]);
+    }
+    $resp = \Illuminate\Support\Facades\Http::withToken($key)->timeout(20)->post(
+        'https://api.openai.com/v1/chat/completions',
+        ['model' => 'gpt-4o-mini', 'messages' => [['role' => 'user', 'content' => 'Responde solo con la palabra: ok']], 'max_tokens' => 20]
+    );
+    return response()->json([
+        'configurado' => true,
+        'status' => $resp->status(),
+        'body' => substr($resp->body(), 0, 500),
+    ]);
+});
+
 
 
 
