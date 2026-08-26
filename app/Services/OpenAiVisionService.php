@@ -54,6 +54,13 @@ Para cada producto determina:
 
 Si no puedes leer un dato con certeza, usa tu mejor estimación razonable, nunca inventes productos que no aparecen.
 
+MUY IMPORTANTE con las cantidades ("cant"): lee CADA DÍGITO del número, de
+izquierda a derecha, sin saltarte ninguno. Los números de cantidad suelen
+tener 1 a 4 dígitos (ej. 2, 37, 279, 1225, 6210). Un error común es leer
+solo el primer dígito y omitir el resto (leer "6210" como "6", o "1225"
+como "1") — verifica con cuidado que copiaste el número completo, dígito
+por dígito, antes de escribirlo en el JSON.
+
 MUY IMPORTANTE: la tabla de productos suele tener entre 15 y 25 filas. Debes
 extraer TODAS las filas de la tabla, de la primera a la última, sin saltarte
 ninguna — incluso las que tengan códigos de lote largos, con barras "/" o "\",
