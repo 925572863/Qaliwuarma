@@ -22,25 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: borrar las distribuciones guardadas (Prorrateo) de Inicial y
-// Primaria, para volver a calcularlas desde cero.
-Route::get('/borrar-distribuciones/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-    $borrados = [
-        'prorrateo_versiones'      => \Illuminate\Support\Facades\DB::table('prorrateo_versiones')->count(),
-        'prorrateo_primaria'       => \Illuminate\Support\Facades\DB::table('prorrateo_primaria')->count(),
-        'prorrateo_inicial_versiones' => \Illuminate\Support\Facades\DB::table('prorrateo_inicial_versiones')->count(),
-        'prorrateo_inicial'        => \Illuminate\Support\Facades\DB::table('prorrateo_inicial')->count(),
-    ];
-    \Illuminate\Support\Facades\DB::table('prorrateo_primaria')->delete();
-    \Illuminate\Support\Facades\DB::table('prorrateo_versiones')->delete();
-    \Illuminate\Support\Facades\DB::table('prorrateo_inicial')->delete();
-    \Illuminate\Support\Facades\DB::table('prorrateo_inicial_versiones')->delete();
-    return response()->json(['borrados' => $borrados]);
-});
-
 // Exportar datos temporalmente (solo para migración)
 Route::get('/exportar-datos-migracion', function () {
     $data = [
