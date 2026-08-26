@@ -22,60 +22,6 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
-// TEMPORAL: corrige el stock de Pecosa Primaria a los valores reales de la
-// Pecosa (se habia triplicado por subir la misma foto 3 veces).
-Route::get('/corregir-stock-real/{token}', function (string $token) {
-    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
-        abort(404);
-    }
-    $reales = [
-        ['ACEITE VEGETAL COMESTIBLE', 'PORTOLA', '0.200', 2, 'B105'],
-        ['ACEITE VEGETAL COMESTIBLE', 'SAO', '1.000', 37, '13/06/28'],
-        ['ARROZ FORTIFICADO', 'ESPIGA PIURANA', '0.250', 2, '0422026'],
-        ['ARROZ FORTIFICADO', 'ESPIGA PIURANA', '1.000', 279, '0382026'],
-        ['AZUCAR RUBIA DOMESTICA', 'DULCE MÁS', '0.250', 1, '0042026'],
-        ['AZUCAR RUBIA DOMESTICA', 'DULCE MÁS', '1.000', 93, '0052026'],
-        ['CEREAL EXTRUIDO', 'AQUIMÁ', '0.030', 6210, 'LT 0326-1'],
-        ['CHOCOLATE PARA TAZA', 'SWEET CACAO', '0.090', 552, 'L261904'],
-        ['CONSERVA DE CARNE DE POLLO', 'RAPISABOR', '0.170', 1225, '142 26 \\ 148 26'],
-        ['CONSERVA DE PESCADO EN ACEITE VEGETAL', 'KATHYMAR', '0.170', 790, 'KTFBOLOTE3FP:07.05.2026FV:07.05.2030'],
-        ['FRIJOL', 'SABORES DEL NORTE', '1.000', 84, '0062026'],
-        ['GALLETA CON KIWICHA', 'EM', '0.030', 3105, '045626 \\ 085626'],
-        ['HARINA EXTRUIDA DE QUINUA', 'VITALINKA', '0.250', 1, 'LT150626-5'],
-        ['HARINA EXTRUIDA DE QUINUA', 'VITALINKA', '1.000', 31, 'LT200626-7'],
-        ['HARINA INSTANTANEA DE MAIZ AMILACEO', 'VITALINKA', '0.250', 2, 'LT290526-5'],
-        ['HARINA INSTANTANEA DE MAIZ AMILACEO', 'VITALINKA', '0.750', 41, 'LT080626-6'],
-        ["HOJUELA PRECOCIDA DE AVENA CON KIWICHA", "SHAQ'UMA FOOD", '0.250', 3, 'LT.0426-5'],
-        ["HOJUELA PRECOCIDA DE AVENA CON KIWICHA", "SHAQ'UMA FOOD", '1.000', 49, 'LT220626-4'],
-        ["HOJUELA PRECOCIDA DE AVENA CON QUINUA", "SHAQ'UMA FOOD", '0.250', 2, 'LT210526-3'],
-        ["HOJUELA PRECOCIDA DE AVENA CON QUINUA", "SHAQ'UMA FOOD", '1.000', 40, 'LT170626-4'],
-        ['PRODUCTO LACTEO RECONSTITUIDO', 'GLORIA', '0.390', 1920, '178'],
-    ];
-
-    $actualizados = 0;
-    $noEncontrados = [];
-    foreach ($reales as [$descripcion, $marca, $presentacion, $cant, $lote]) {
-        $fila = \Illuminate\Support\Facades\DB::table('pecosa_primaria')
-            ->where('descripcion', $descripcion)
-            ->where('marca', $marca)
-            ->where('presentacion', $presentacion)
-            ->first();
-
-        if (!$fila) {
-            $noEncontrados[] = "$descripcion / $marca / $presentacion";
-            continue;
-        }
-
-        $volumen = round($cant * (float) $presentacion, 3);
-        \Illuminate\Support\Facades\DB::table('pecosa_primaria')->where('id', $fila->id)->update([
-            'cant' => $cant, 'volumen' => $volumen, 'stock_actual' => $volumen,
-            'lote' => $lote, 'updated_at' => now(),
-        ]);
-        $actualizados++;
-    }
-
-    return response()->json(['actualizados' => $actualizados, 'no_encontrados' => $noEncontrados]);
-});
 
 
 
