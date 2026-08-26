@@ -22,6 +22,26 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// TEMPORAL: corrige el CEREAL EXTRUIDO de "Pecosa 5" (quedo en 6 por el bug
+// del punto de miles, debe ser 6210).
+Route::get('/fix-cereal-pecosa5-v2/{token}', function (string $token) {
+    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
+        abort(404);
+    }
+    $fila = \Illuminate\Support\Facades\DB::table('pecosa_primaria')
+        ->where('nombre_pecosa', 'Pecosa 5')
+        ->where('descripcion', 'CEREAL EXTRUIDO')
+        ->first();
+    if (!$fila) {
+        return response()->json(['error' => 'no encontrado']);
+    }
+    $volumen = round(6210 * $fila->presentacion, 3);
+    \Illuminate\Support\Facades\DB::table('pecosa_primaria')->where('id', $fila->id)->update([
+        'cant' => 6210, 'volumen' => $volumen, 'stock_actual' => $volumen, 'updated_at' => now(),
+    ]);
+    return response()->json(['corregido' => true, 'id' => $fila->id, 'cant_actual' => $fila->cant]);
+});
+
 
 // TEMPORAL: ver estado real de alumnos (totales y ultima actualizacion).
 Route::get('/check-alumnos-ahora/{token}', function (string $token) {
