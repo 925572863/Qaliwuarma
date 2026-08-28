@@ -22,6 +22,29 @@ use Illuminate\Support\Facades\Route;
 // Redirect root to dashboard
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// TEMPORAL: verificacion final de sumas en Pecosa Inicial y Primaria (mas reciente).
+Route::get('/check-suma-final/{token}', function (string $token) {
+    if (! hash_equals('53ad73091360d1a58220bcb870c751933876ba15589fc9e9', $token)) {
+        abort(404);
+    }
+    $resultado = [];
+    foreach (['pecosa_inicial', 'pecosa_primaria'] as $tabla) {
+        $pecosaMasReciente = \Illuminate\Support\Facades\DB::table($tabla)
+            ->whereNotNull('nombre_pecosa')->select('nombre_pecosa', 'created_at')->get()
+            ->groupBy('nombre_pecosa')->map(fn($g) => $g->max('created_at'))->sortDesc()->keys()->first();
+
+        $filas = \Illuminate\Support\Facades\DB::table($tabla)
+            ->where('nombre_pecosa', $pecosaMasReciente)->orderBy('descripcion')->get();
+
+        $resultado[$tabla] = [
+            'pecosa' => $pecosaMasReciente,
+            'productos' => $filas->map(fn($f) => ['descripcion' => $f->descripcion, 'marca' => $f->marca, 'cant' => $f->cant]),
+            'suma_total' => $filas->sum('cant'),
+        ];
+    }
+    return response()->json($resultado);
+});
+
 
 
 
