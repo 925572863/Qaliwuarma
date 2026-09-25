@@ -240,7 +240,9 @@ class ProrrateoInicialController extends Controller
             DB::table('prorrateo_inicial')->insert($chunk);
         }
 
-        return redirect()->route('pecosa.inicial.distribuciones')
+        // Va directo a la distribución recién guardada (no al listado general),
+        // para no perder de vista qué Pecosa se acaba de repartir.
+        return redirect()->route('pecosa.inicial.distribuciones.ver', $version)
             ->with('success', 'Distribución guardada correctamente.');
     }
 
