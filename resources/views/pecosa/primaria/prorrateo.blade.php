@@ -34,6 +34,13 @@
             @endif
         </div>
         <div class="flex space-x-2">
+            <button type="button" onclick="distribuirAutomatico()"
+                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center space-x-2 shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+                </svg>
+                <span>Distribuir automático por alumnos</span>
+            </button>
             <button type="button" onclick="limpiarTabla()"
                     class="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,7 +102,8 @@
                     @foreach($data as $fila)
                         <tr class="hover:bg-green-50 transition-colors group">
                             {{-- Celda sección --}}
-                            <td class="px-3 py-2 border border-gray-200 font-bold text-gray-700 text-center sticky left-0 z-10 bg-white group-hover:bg-green-50 text-xs">
+                            <td class="px-3 py-2 border border-gray-200 font-bold text-gray-700 text-center sticky left-0 z-10 bg-white group-hover:bg-green-50 text-xs fila-alumnos"
+                                data-alumnos="{{ $fila['alumnos'] }}">
                                 {{ $fila['seccion'] }}<br>
                                 <span class="text-[10px] text-gray-400 font-normal">{{ $fila['alumnos'] }} alu</span>
                                 <input type="hidden" name="alumnos[{{ $fila['seccion'] }}]" value="{{ $fila['alumnos'] }}">
@@ -195,6 +203,39 @@
 
 @push('scripts')
 <script>
+function distribuirAutomatico() {
+    if (!confirm('¿Repartir automáticamente cada producto entre las secciones según su cantidad de alumnos? Esto sobrescribe los valores actuales de la tabla.')) return;
+
+    const alumnosPorFila = Array.from(document.querySelectorAll('.fila-alumnos'))
+        .map(td => parseInt(td.dataset.alumnos) || 0);
+    const totalAlumnos = alumnosPorFila.reduce((a, b) => a + b, 0);
+    if (totalAlumnos <= 0) return;
+
+    document.querySelectorAll('.cantidad-restante').forEach(td => {
+        const col = parseInt(td.dataset.col);
+        const totalProducto = parseInt(td.dataset.pecosa) || 0;
+
+        const exactos = alumnosPorFila.map(al => totalProducto * al / totalAlumnos);
+        const piso = exactos.map(Math.floor);
+        let asignado = piso.reduce((a, b) => a + b, 0);
+        let faltan = totalProducto - asignado;
+
+        const restos = exactos.map((ex, i) => ({ i, resto: ex - piso[i] }))
+            .sort((a, b) => b.resto - a.resto);
+        for (let k = 0; k < restos.length && faltan > 0; k++) {
+            piso[restos[k].i]++;
+            faltan--;
+        }
+
+        piso.forEach((cant, row) => {
+            const input = document.querySelector(`input[data-col="${col}"][data-row="${row}"]`);
+            if (input) input.value = cant > 0 ? cant : '';
+        });
+    });
+
+    recalcular();
+}
+
 function limpiarTabla() {
     if (!confirm('¿Borrar todas las cantidades de la tabla? Esta acción no se puede deshacer.')) return;
     document.querySelectorAll('input[data-col]').forEach(input => input.value = '');
