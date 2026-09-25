@@ -169,6 +169,15 @@ class PecosaInicialController extends Controller
             ->with('success', 'Producto eliminado.');
     }
 
+    public function destroyAll()
+    {
+        $total = PecosaInicial::count();
+        PecosaInicial::query()->delete();
+
+        return redirect()->route('pecosa.inicial.index')
+            ->with('success', "Se eliminaron los {$total} productos de Pecosa Inicial.");
+    }
+
     public function nutricion(Request $request)
     {
         $ids    = $request->input('productos', []);

@@ -111,6 +111,7 @@ Route::middleware(['auth', 'throttle:120,1'])->group(function () {
         Route::post('/',                  [PecosaInicialController::class, 'store'])->name('store');
         Route::get('/{inicial}/editar',   [PecosaInicialController::class, 'edit'])->name('edit');
         Route::put('/{inicial}',          [PecosaInicialController::class, 'update'])->name('update');
+        Route::delete('/eliminar-todo',   [PecosaInicialController::class, 'destroyAll'])->name('destroy-all');
         Route::delete('/{inicial}',       [PecosaInicialController::class, 'destroy'])->name('destroy');
 
         // Distribución / Prorrateo Inicial
@@ -182,6 +183,7 @@ Route::middleware(['auth', 'throttle:120,1'])->group(function () {
         Route::post('/',                   [PecosaPrimariaController::class, 'store'])->name('store');
         Route::get('/{primarium}/editar',  [PecosaPrimariaController::class, 'edit'])->name('edit');
         Route::put('/{primarium}',         [PecosaPrimariaController::class, 'update'])->name('update');
+        Route::delete('/eliminar-todo',    [PecosaPrimariaController::class, 'destroyAll'])->name('destroy-all');
         Route::delete('/{primarium}',      [PecosaPrimariaController::class, 'destroy'])->name('destroy');
     });
 

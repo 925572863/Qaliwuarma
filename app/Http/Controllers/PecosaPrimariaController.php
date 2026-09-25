@@ -168,6 +168,15 @@ class PecosaPrimariaController extends Controller
             ->with('success', 'Producto eliminado.');
     }
 
+    public function destroyAll()
+    {
+        $total = PecosaPrimaria::count();
+        PecosaPrimaria::query()->delete();
+
+        return redirect()->route('pecosa.primaria.index')
+            ->with('success', "Se eliminaron los {$total} productos de Pecosa Primaria.");
+    }
+
     public function importar(Request $request)
     {
         $request->validate([
