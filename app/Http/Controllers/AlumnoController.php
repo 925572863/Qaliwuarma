@@ -215,7 +215,7 @@ class AlumnoController extends Controller
         $colAM  = $this->findCol($normH, ['apellido_materno','ap_materno','materno','ape_materno']);
         $colNom = $this->findCol($normH, ['nombres','nombre','primer_nombre']);
         $colFull= $this->findCol($normH, ['apellidos_y_nombres','nombre_completo','apellidos_nombres','ape_y_nom']);
-        $colDni = $this->findCol($normH, ['numero_de_documento','numero_documento','num_doc','n_doc','dni','matricula','documento','doc']);
+        $colDni = $this->findCol($normH, ['numero_de_documento','numero_documento','num_doc','n_doc','dni','matricula','documento','doc'], ['tipo_', 'estado_']);
         $colCod = $this->findCol($normH, ['codigo_del_estudiante','codigo_estudiante','cod_estudiante','codigo_alumno']);
         $colFec = $this->findCol($normH, ['fecha_nacimiento','fecha_nac','f_nacimiento','nacimiento','fec_nac','fecha_de_nacimiento']);
         $colSex = $this->findCol($normH, ['sexo','genero','sex']);
@@ -327,19 +327,24 @@ class AlumnoController extends Controller
         );
     }
 
-    private function findCol(array $normalizedHeaders, array $possibleNames): ?int
+    private function findCol(array $normalizedHeaders, array $possibleNames, array $excludePrefixes = []): ?int
     {
         // Paso 1: coincidencia exacta (más confiable)
         foreach ($normalizedHeaders as $idx => $header) {
             if ($header === '') continue;
             if (in_array($header, $possibleNames)) return $idx;
         }
-        // Paso 2: coincidencia parcial, excluyendo columnas tipo "tipo_de_*"
-        // y "estado_*" (ej. "Estado Matrícula" = DEFINITIVA/TRASLADADO no
-        // debe confundirse con la columna de código/DNI solo porque
-        // contiene la palabra "matricula").
+        // Paso 2: coincidencia parcial. $excludePrefixes solo aplica a búsquedas
+        // como la de DNI/matrícula, para que no confundan "Estado Matrícula"
+        // (DEFINITIVA/TRASLADADO) con la columna de código. No debe aplicarse
+        // cuando lo que se busca ES la columna de estado, o nunca se encontraría.
         foreach ($normalizedHeaders as $idx => $header) {
-            if ($header === '' || str_starts_with($header, 'tipo_') || str_starts_with($header, 'estado_')) continue;
+            if ($header === '') continue;
+            $excluido = false;
+            foreach ($excludePrefixes as $prefix) {
+                if (str_starts_with($header, $prefix)) { $excluido = true; break; }
+            }
+            if ($excluido) continue;
             foreach ($possibleNames as $name) {
                 if (str_contains($header, $name) || str_contains($name, $header)) {
                     return $idx;
@@ -469,7 +474,7 @@ class AlumnoController extends Controller
         $colAM  = $this->findCol($normH, ['apellido_materno','ap_materno','materno','ape_materno']);
         $colNom = $this->findCol($normH, ['nombres','nombre','primer_nombre']);
         $colFull= $this->findCol($normH, ['apellidos_y_nombres','nombre_completo','apellidos_nombres']);
-        $colDni = $this->findCol($normH, ['numero_de_documento','numero_documento','num_doc','dni','matricula','documento']);
+        $colDni = $this->findCol($normH, ['numero_de_documento','numero_documento','num_doc','dni','matricula','documento'], ['tipo_', 'estado_']);
         $colCod = $this->findCol($normH, ['codigo_del_estudiante','codigo_estudiante','cod_estudiante','codigo_alumno']);
         $colFec = $this->findCol($normH, ['fecha_nacimiento','fecha_nac','f_nacimiento','nacimiento','fec_nac']);
         $colSex = $this->findCol($normH, ['sexo','genero','sex']);

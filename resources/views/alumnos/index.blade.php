@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function(){ cambiarTab('primaria')
             <div class="w-2 h-2 rounded-full bg-blue-500"></div>
             <span>PRIMARIA</span>
             <span class="bg-gray-200 text-gray-600 px-2 py-0.5 rounded-md text-[10px]">
-                {{ $seccionesPorNivel->has('primaria') ? $seccionesPorNivel['primaria']->flatten()->count() : 0 }}
+                {{ $seccionesPorNivel->has('primaria') ? $seccionesPorNivel['primaria']->flatten()->where('estado', 'activo')->count() : 0 }}
             </span>
         </button>
         <button id="btn-tab-inicial"
@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function(){ cambiarTab('primaria')
             <div class="w-2 h-2 rounded-full bg-amber-500"></div>
             <span>INICIAL</span>
             <span class="bg-gray-200 text-gray-600 px-2 py-0.5 rounded-md text-[10px]">
-                {{ $seccionesPorNivel->has('inicial') ? $seccionesPorNivel['inicial']->flatten()->count() : 0 }}
+                {{ $seccionesPorNivel->has('inicial') ? $seccionesPorNivel['inicial']->flatten()->where('estado', 'activo')->count() : 0 }}
             </span>
         </button>
     </div>
@@ -357,7 +357,7 @@ document.addEventListener('DOMContentLoaded', function(){ cambiarTab('primaria')
                                             </div>
                                             <div class="text-left">
                                                 <span class="text-white font-black text-sm tracking-widest uppercase block">{{ $gradoNombre }}</span>
-                                                <span class="text-white/60 text-[10px] font-bold uppercase">{{ count($seccionesDelGrado) }} Secciones &middot; {{ collect($seccionesDelGrado)->flatten()->count() }} Alumnos</span>
+                                                <span class="text-white/60 text-[10px] font-bold uppercase">{{ count($seccionesDelGrado) }} Secciones &middot; {{ collect($seccionesDelGrado)->flatten()->where('estado', 'activo')->count() }} Alumnos</span>
                                             </div>
                                         </div>
                                         <svg id="arrow-{{ $gradoId }}" class="w-5 h-5 text-white/50 transition-transform duration-300"
@@ -389,7 +389,7 @@ document.addEventListener('DOMContentLoaded', function(){ cambiarTab('primaria')
                                                     </div>
                                                     <div class="flex items-center space-x-4">
                                                         <div class="text-right mr-2">
-                                                            <span class="text-xl font-black {{ $color['text'] }} block leading-none">{{ $lista->count() }}</span>
+                                                            <span class="text-xl font-black {{ $color['text'] }} block leading-none">{{ $lista->where('estado', 'activo')->count() }}</span>
                                                             <span class="text-[10px] font-bold text-gray-400 uppercase">Total</span>
                                                         </div>
                                                         <div class="p-1.5 rounded-lg bg-gray-50 transition-colors">
