@@ -190,6 +190,30 @@ class PecosaPrimariaController extends Controller
             $hoja        = $spreadsheet->getActiveSheet();
             $filas       = $hoja->toArray(null, true, true, false);
 
+            // Detecta la fila de encabezados y la posición real de cada columna
+            // por su nombre (ver mismo fix en PecosaInicialController::importar).
+            $headerIdx = null;
+            $colCant = $colUnid = $colDesc = $colMarca = $colPresent = $colLote = null;
+            foreach ($filas as $idx => $fila) {
+                $normH = array_map(fn($h) => $this->normalizeHeaderPecosa((string)($h ?? '')), $fila);
+                $tieneCant = in_array('cant', $normH, true);
+                $tieneDesc = $this->findColPecosa($normH, ['descripcion_de_productos', 'descripcion', 'producto']) !== null;
+                if ($tieneCant && $tieneDesc) {
+                    $headerIdx  = $idx;
+                    $colCant    = $this->findColPecosa($normH, ['cant']);
+                    $colUnid    = $this->findColPecosa($normH, ['unid', 'unidad']);
+                    $colDesc    = $this->findColPecosa($normH, ['descripcion_de_productos', 'descripcion', 'producto']);
+                    $colMarca   = $this->findColPecosa($normH, ['marca']);
+                    $colPresent = $this->findColPecosa($normH, ['present', 'presentacion']);
+                    $colLote    = $this->findColPecosa($normH, ['lote_lotes', 'lote', 'lotes']);
+                    break;
+                }
+            }
+            if ($headerIdx === null) {
+                $headerIdx = 0;
+                $colCant = 0; $colUnid = 1; $colDesc = 2; $colMarca = 3; $colPresent = 4; $colLote = 5;
+            }
+
             $nombrePecosaInput = $request->input('nombre_pecosa');
             $nombreEsAutomatico = empty($nombrePecosaInput);
             $nombrePecosa = $nombrePecosaInput ?: $this->nombrePecosaAutomatico();
@@ -200,15 +224,15 @@ class PecosaPrimariaController extends Controller
             $sumados = 0;
 
             foreach ($filas as $idx => $fila) {
-                if ($idx === 0) continue;
-                if (empty(trim((string)($fila[2] ?? '')))) continue;
+                if ($idx <= $headerIdx) continue;
+                if (empty(trim((string)($fila[$colDesc] ?? '')))) continue;
 
-                $cant         = $this->parseCantidad($fila[0] ?? 0);
-                $unid         = strtoupper(trim((string)($fila[1] ?? '')));
-                $descripcion  = strtoupper(trim((string)($fila[2] ?? '')));
-                $marca        = strtoupper(trim((string)($fila[3] ?? ''))) ?: null;
-                $presentacion = floatval(str_replace(',', '.', $fila[4] ?? 1));
-                $lote         = trim((string)($fila[5] ?? '')) ?: null;
+                $cant         = $this->parseCantidad($fila[$colCant] ?? 0);
+                $unid         = strtoupper(trim((string)($fila[$colUnid] ?? '')));
+                $descripcion  = strtoupper(trim((string)($fila[$colDesc] ?? '')));
+                $marca        = $colMarca !== null ? (strtoupper(trim((string)($fila[$colMarca] ?? ''))) ?: null) : null;
+                $presentacion = floatval(str_replace(',', '.', $fila[$colPresent] ?? 1));
+                $lote         = $colLote !== null ? (trim((string)($fila[$colLote] ?? '')) ?: null) : null;
 
                 if ($cant <= 0 || !$unid || !$descripcion || $presentacion <= 0) {
                     $errores[] = "Fila " . ($idx + 1) . ": datos incompletos o inválidos.";
@@ -385,5 +409,35 @@ class PecosaPrimariaController extends Controller
         ]);
 
         return true;
+    }
+
+    private function normalizeHeaderPecosa(string $h): string
+    {
+        $h = mb_strtolower(trim($h));
+        $h = str_replace(
+            ['á','é','í','ó','ú','ü','ñ','à','è','ì','ò','ù','°','º','ª','.'],
+            ['a','e','i','o','u','u','n','a','e','i','o','u','','','',''],
+            $h
+        );
+        $h = preg_replace('/\s*\(.*?\)\s*/', '', $h);
+        $h = preg_replace('/[^a-z0-9]+/', '_', $h);
+        return trim($h, '_');
+    }
+
+    private function findColPecosa(array $normalizedHeaders, array $possibleNames): ?int
+    {
+        foreach ($normalizedHeaders as $idx => $header) {
+            if ($header === '') continue;
+            if (in_array($header, $possibleNames)) return $idx;
+        }
+        foreach ($normalizedHeaders as $idx => $header) {
+            if ($header === '') continue;
+            foreach ($possibleNames as $name) {
+                if (str_contains($header, $name) || str_contains($name, $header)) {
+                    return $idx;
+                }
+            }
+        }
+        return null;
     }
 }
