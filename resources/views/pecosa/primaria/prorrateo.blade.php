@@ -19,6 +19,19 @@
                     <span class="text-amber-500 font-medium">Calculado automáticamente — aún no guardado</span>
                 @endif
             </p>
+            @if(count($listaPecosas) > 1)
+                <div class="mt-2 flex items-center space-x-2">
+                    <label class="text-xs font-medium text-gray-500">Pecosa a distribuir:</label>
+                    <select onchange="window.location.href='{{ route('pecosa.primaria.prorrateo') }}?pecosa=' + encodeURIComponent(this.value)"
+                            class="text-xs border border-gray-200 rounded-lg px-2 py-1 font-medium text-gray-700">
+                        @foreach($listaPecosas as $p)
+                            <option value="{{ $p['nombre'] }}" {{ $p['nombre'] == $pecosaSeleccionada ? 'selected' : '' }}>
+                                {{ $p['nombre'] }} — {{ $p['productos'] }} producto(s) ({{ \Carbon\Carbon::parse($p['fecha'])->format('d/m/Y H:i') }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
         </div>
         <div class="flex space-x-2">
             <button type="button" onclick="limpiarTabla()"

@@ -28,25 +28,47 @@ class ProrrateoController extends Controller
     }
 
     /**
-     * Solo usa los productos de la Pecosa más reciente (igual que el
-     * listado de Pecosa Primaria), para no mezclar entregas de distintas
-     * fechas en un mismo reparto. Si ningún producto tiene nombre_pecosa
-     * (datos antiguos, de antes de esa función), usa todos.
+     * Lista todas las Pecosas subidas (agrupadas por nombre_pecosa), para
+     * que el usuario elija cuál distribuir — antes solo se podía ver/repartir
+     * la más reciente, ocultando las demás que ya estaban subidas.
      */
-    private function getProductos(): array
+    private function getListaPecosas(): array
     {
-        $pecosaMasReciente = DB::table('pecosa_primaria')
+        return DB::table('pecosa_primaria')
             ->whereNotNull('nombre_pecosa')
-            ->select('nombre_pecosa', 'created_at')
-            ->get()
+            ->select('nombre_pecosa')
+            ->selectRaw('COUNT(*) as productos, MAX(created_at) as fecha')
             ->groupBy('nombre_pecosa')
-            ->map(fn($grupo) => $grupo->max('created_at'))
-            ->sortDesc()
-            ->keys()
-            ->first();
+            ->orderByDesc('fecha')
+            ->get()
+            ->map(fn($p) => [
+                'nombre'    => $p->nombre_pecosa,
+                'productos' => $p->productos,
+                'fecha'     => $p->fecha,
+            ])->toArray();
+    }
+
+    /**
+     * Usa los productos de la Pecosa indicada en $nombrePecosa, o la más
+     * reciente si no se especifica ninguna. Si ningún producto tiene
+     * nombre_pecosa (datos antiguos, de antes de esa función), usa todos.
+     */
+    private function getProductos(?string $nombrePecosa = null): array
+    {
+        if (!$nombrePecosa) {
+            $nombrePecosa = DB::table('pecosa_primaria')
+                ->whereNotNull('nombre_pecosa')
+                ->select('nombre_pecosa', 'created_at')
+                ->get()
+                ->groupBy('nombre_pecosa')
+                ->map(fn($grupo) => $grupo->max('created_at'))
+                ->sortDesc()
+                ->keys()
+                ->first();
+        }
 
         return DB::table('pecosa_primaria')
-            ->when($pecosaMasReciente, fn($q) => $q->where('nombre_pecosa', $pecosaMasReciente))
+            ->when($nombrePecosa, fn($q) => $q->where('nombre_pecosa', $nombrePecosa))
             ->orderBy('descripcion')->get()
             ->map(fn($p) => [
                 'id'           => $p->id,
@@ -156,10 +178,13 @@ class ProrrateoController extends Controller
 
     // ── Vistas ───────────────────────────────────────────────────────────────
 
-    public function primaria()
+    public function primaria(Request $request)
     {
+        $listaPecosas    = $this->getListaPecosas();
+        $pecosaSeleccionada = $request->query('pecosa') ?: ($listaPecosas[0]['nombre'] ?? null);
+
         $secciones = $this->getSecciones();
-        $productos = $this->getProductos();
+        $productos = $this->getProductos($pecosaSeleccionada);
 
         $ultimaVersion = DB::table('prorrateo_versiones')->latest()->first();
         $guardado      = null;
@@ -181,7 +206,8 @@ class ProrrateoController extends Controller
 
         return view('pecosa.primaria.prorrateo', compact(
             'data', 'productos', 'totalesProductos', 'totalGeneral',
-            'totalAlumnos', 'hayGuardado', 'ultimaActualizacion', 'totalVersiones'
+            'totalAlumnos', 'hayGuardado', 'ultimaActualizacion', 'totalVersiones',
+            'listaPecosas', 'pecosaSeleccionada'
         ));
     }
 
