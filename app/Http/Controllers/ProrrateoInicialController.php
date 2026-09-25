@@ -293,8 +293,23 @@ class ProrrateoInicialController extends Controller
                 $data[] = $fila;
             }
         } else {
+            // Usa los productos EXACTOS (por id) que se guardaron en esta
+            // versión, no los de la Pecosa "actual" seleccionada — de lo
+            // contrario, si desde que se guardó esta distribución se subió
+            // una Pecosa nueva, los ids no coinciden y todo sale en 0 aunque
+            // los datos reales sigan intactos en la base de datos.
+            $idsGuardados = $registros->pluck('pecosa_inicial_id')->unique()->filter()->values();
             $secciones = $this->getSecciones();
-            $productos = $this->getProductos();
+            $productos = DB::table('pecosa_inicial')
+                ->whereIn('id', $idsGuardados)
+                ->orderBy('descripcion')->get()
+                ->map(fn($p) => [
+                    'id'           => $p->id,
+                    'nombre'       => $p->descripcion,
+                    'unid'         => $p->unid,
+                    'presentacion' => number_format($p->presentacion, 3),
+                    'cant_total'   => (int) $p->cant,
+                ])->toArray();
             $guardado  = $registros->groupBy('seccion');
             [$data, $totalesProductos, $totalGeneral, $totalAlumnos] =
                 $this->construirTabla($secciones, $productos, $guardado);

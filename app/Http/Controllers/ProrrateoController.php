@@ -320,8 +320,21 @@ class ProrrateoController extends Controller
             }
 
         } else {
+            // Usa los productos EXACTOS (por id) que se guardaron en esta
+            // versión, no los de la Pecosa "actual" seleccionada (ver mismo
+            // fix en ProrrateoInicialController::verVersion).
+            $idsGuardados = $registros->pluck('pecosa_primaria_id')->unique()->filter()->values();
             $secciones = $this->getSecciones();
-            $productos = $this->getProductos();
+            $productos = DB::table('pecosa_primaria')
+                ->whereIn('id', $idsGuardados)
+                ->orderBy('descripcion')->get()
+                ->map(fn($p) => [
+                    'id'           => $p->id,
+                    'nombre'       => $p->descripcion,
+                    'unid'         => $p->unid,
+                    'presentacion' => number_format($p->presentacion, 3),
+                    'cant_total'   => (int) $p->cant,
+                ])->toArray();
             $guardado  = $registros->groupBy('seccion');
             [$data, $totalesProductos, $totalGeneral, $totalAlumnos] =
                 $this->construirTabla($secciones, $productos, $guardado);
