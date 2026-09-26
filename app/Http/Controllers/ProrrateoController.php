@@ -461,14 +461,27 @@ class ProrrateoController extends Controller
         $version = DB::table('prorrateo_versiones')->find($versionId);
         abort_if(!$version, 404);
 
-        // Productos PECOSA ordenados igual que el prorrateo
-        $productos = $this->getProductos();
-
         // Totales de la sección guardados en el prorrateo
         $registros = DB::table('prorrateo_primaria')
             ->where('version_id', $versionId)
             ->where('seccion', $seccion)
             ->pluck('cantidad', 'pecosa_primaria_id');
+
+        // Usa los productos EXACTOS (por id) de esta versión, no los de la
+        // Pecosa "actual" (mismo fix que en verVersion()).
+        $idsGuardados = DB::table('prorrateo_primaria')
+            ->where('version_id', $versionId)
+            ->pluck('pecosa_primaria_id')->unique()->filter()->values();
+        $productos = DB::table('pecosa_primaria')
+            ->whereIn('id', $idsGuardados)
+            ->orderBy('descripcion')->get()
+            ->map(fn($p) => [
+                'id'           => $p->id,
+                'nombre'       => $p->descripcion,
+                'unid'         => $p->unid,
+                'presentacion' => number_format($p->presentacion, 3),
+                'cant_total'   => (int) $p->cant,
+            ])->toArray();
 
         // Extraer grado (número) y letra de "1º A" → grado=1, letra="A"
         $grado = (int) $seccion;

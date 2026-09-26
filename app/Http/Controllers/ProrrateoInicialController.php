@@ -433,12 +433,26 @@ class ProrrateoInicialController extends Controller
         $version = DB::table('prorrateo_inicial_versiones')->find($versionId);
         abort_if(!$version, 404);
 
-        $productos = $this->getProductos();
-
         $registros = DB::table('prorrateo_inicial')
             ->where('version_id', $versionId)
             ->where('seccion', $seccion)
             ->pluck('cantidad', 'pecosa_inicial_id');
+
+        // Usa los productos EXACTOS (por id) de esta versión, no los de la
+        // Pecosa "actual" (mismo fix que en verVersion()).
+        $idsGuardados = DB::table('prorrateo_inicial')
+            ->where('version_id', $versionId)
+            ->pluck('pecosa_inicial_id')->unique()->filter()->values();
+        $productos = DB::table('pecosa_inicial')
+            ->whereIn('id', $idsGuardados)
+            ->orderBy('descripcion')->get()
+            ->map(fn($p) => [
+                'id'           => $p->id,
+                'nombre'       => $p->descripcion,
+                'unid'         => $p->unid,
+                'presentacion' => number_format($p->presentacion, 3),
+                'cant_total'   => (int) $p->cant,
+            ])->toArray();
 
         $alumnos = DB::table('alumnos')
             ->where('nivel', 'inicial')
