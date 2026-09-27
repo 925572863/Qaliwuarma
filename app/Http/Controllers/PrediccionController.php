@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\RecetaNutricional;
 use App\Models\RegistroAsistencia;
+use App\Services\GeminiService;
 use Illuminate\Http\Request;
 
 class PrediccionController extends Controller
@@ -191,6 +192,35 @@ class PrediccionController extends Controller
                     $matches,
                     PREG_SET_ORDER
                 );
+
+                // Si el texto no trae gramos explícitos (ej. "arroz con
+                // atún"), se le pide a la IA que estime las cantidades por
+                // ración de una preparación escolar típica, en vez de
+                // exigirle al usuario que escriba los gramos a mano. Se
+                // cachea en sesión por texto de receta para no llamar a la
+                // IA en cada recarga de la página.
+                if (empty($matches)) {
+                    $cacheKey = "receta_ia_calculada_{$nivel}_" . md5($recetaIA);
+                    $items = session($cacheKey);
+                    if ($items === null) {
+                        $resultado = (new GeminiService())->calcularRecetaLibre($recetaIA);
+                        if (!isset($resultado['__error']) && !empty($resultado)) {
+                            $items = collect($resultado)
+                                ->filter(fn($it) => !empty($it['ingrediente']) && !empty($it['gramos_racion']))
+                                ->map(fn($it) => [
+                                    'nombre'  => ucfirst(trim($it['ingrediente'])),
+                                    'gramos'  => (float) $it['gramos_racion'],
+                                ])->values()->toArray();
+                            session([$cacheKey => $items]);
+                        } else {
+                            $items = [];
+                        }
+                    }
+
+                    if (!empty($items)) {
+                        $matches = array_map(fn($it) => [null, $it['nombre'], $it['gramos'], 'g'], $items);
+                    }
+                }
 
                 if (!empty($matches)) {
                     foreach ($predicciones as $pred) {

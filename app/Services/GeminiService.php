@@ -80,4 +80,57 @@ PROMPT;
         $decoded = json_decode($matches[0], true);
         return $decoded ?? ['__error' => 'json_decode_failed'];
     }
+
+    /**
+     * Interpreta una receta escrita en texto libre (ej. "arroz con atún",
+     * sin gramos) y devuelve cuánto se necesita de cada ingrediente por
+     * ración, usando cantidades estándar de una preparación escolar para
+     * el programa Qali Warma. A diferencia de calcularNutricion(), no
+     * requiere una lista previa de productos PECOSA.
+     */
+    public function calcularRecetaLibre(string $receta): array
+    {
+        $prompt = <<<PROMPT
+Eres un nutricionista del programa Qali Warma de Perú, encargado de calcular
+cantidades de ingredientes para el almuerzo/desayuno escolar.
+
+La preparación de hoy es: "{$receta}"
+
+Identifica los ingredientes principales de esa preparación (usualmente 2 a 5)
+y estima, para UNA ración (una porción de un alumno de nivel inicial),
+cuántos gramos o mililitros de cada ingrediente se necesitan, usando
+cantidades típicas y realistas de una preparación escolar.
+
+Responde SOLO en formato JSON sin texto adicional, con esta forma exacta:
+[
+  {"ingrediente": "nombre del ingrediente", "gramos_racion": 100}
+]
+PROMPT;
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $this->apiKey,
+            'Content-Type'  => 'application/json',
+        ])->post($this->endpoint, [
+            'model'       => 'openai/gpt-oss-20b',
+            'messages'    => [
+                ['role' => 'user', 'content' => $prompt],
+            ],
+            'temperature' => 0.2,
+            'max_tokens'  => 600,
+        ]);
+
+        if (!$response->successful()) {
+            return ['__error' => $response->status(), '__body' => substr($response->body(), 0, 800)];
+        }
+
+        $text = $response->json('choices.0.message.content', '');
+
+        preg_match('/\[.*\]/s', $text, $matches);
+        if (empty($matches[0])) {
+            return ['__error' => 'no_json', '__text' => substr($text, 0, 800)];
+        }
+
+        $decoded = json_decode($matches[0], true);
+        return $decoded ?? ['__error' => 'json_decode_failed'];
+    }
 }
