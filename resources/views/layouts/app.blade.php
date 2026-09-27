@@ -34,7 +34,7 @@
     <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-20 hidden lg:hidden" onclick="closeSidebar()"></div>
 
     {{-- ── Sidebar ── --}}
-    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-30 w-64 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border-r border-gray-200 dark:border-slate-700 flex flex-col flex-shrink-0 -translate-x-full lg:translate-x-0 transition-transform duration-300">
+    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-30 w-64 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border-r border-gray-200 dark:border-slate-700 flex flex-col flex-shrink-0 -translate-x-full lg:translate-x-0 transition-all duration-300 overflow-hidden">
 
         {{-- Logo --}}
         <div class="px-6 py-5 flex items-center space-x-3 border-b border-gray-100 dark:border-slate-700">
@@ -328,6 +328,12 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                     </svg>
                 </button>
+                {{-- Botón para colapsar el menú lateral (solo pantallas grandes, para ganar espacio) --}}
+                <button onclick="toggleSidebarDesktop()" title="Ocultar/mostrar menú" class="hidden lg:flex p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
                 <div>
                 <h1 class="text-lg font-semibold text-gray-800 dark:text-white">@yield('page-title', 'Dashboard')</h1>
                 @hasSection('breadcrumb')
@@ -420,6 +426,22 @@ function toggleSidebar() {
         overlay.classList.remove('hidden');
     }
 }
+function toggleSidebarDesktop() {
+    const sidebar = document.getElementById('sidebar');
+    const collapsed = sidebar.classList.contains('lg:!w-0');
+    if (collapsed) {
+        sidebar.classList.remove('lg:!w-0', 'lg:!border-r-0');
+        try { localStorage.setItem('sidebar-collapsed', '0'); } catch (e) {}
+    } else {
+        sidebar.classList.add('lg:!w-0', 'lg:!border-r-0');
+        try { localStorage.setItem('sidebar-collapsed', '1'); } catch (e) {}
+    }
+}
+try {
+    if (localStorage.getItem('sidebar-collapsed') === '1' && window.innerWidth >= 1024) {
+        document.getElementById('sidebar').classList.add('lg:!w-0', 'lg:!border-r-0');
+    }
+} catch (e) {}
 function closeSidebar() {
     document.getElementById('sidebar').classList.add('-translate-x-full');
     document.getElementById('sidebar-overlay').classList.add('hidden');
