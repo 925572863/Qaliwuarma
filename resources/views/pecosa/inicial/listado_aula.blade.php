@@ -121,21 +121,6 @@
             </tfoot>
         </table>
 
-        {{-- Productos por aula (no individuales) --}}
-        @if(!empty($productosAula))
-        <div class="mt-4 no-print">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Productos entregados por aula (no individuales)</p>
-            <div class="flex flex-wrap gap-2">
-                @foreach($productosAula as $prod)
-                    <div class="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 text-xs">
-                        <span class="font-bold text-gray-700">{{ $prod['nombre'] }}</span>
-                        <span class="text-gray-500 ml-1">→ {{ $prod['total_aula'] }} {{ $prod['unid'] }}</span>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-        @endif
-
         <div class="mt-2 flex justify-end no-print">
             @php $granTotal = array_sum($totalesCol) + $totalAlumnos; @endphp
             <span class="text-xs text-gray-500">Total unidades + bolsas: <strong>{{ number_format($granTotal) }}</strong></span>
