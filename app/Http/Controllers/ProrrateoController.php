@@ -53,18 +53,38 @@ class ProrrateoController extends Controller
      * reciente si no se especifica ninguna. Si ningún producto tiene
      * nombre_pecosa (datos antiguos, de antes de esa función), usa todos.
      */
+    const TODAS = '__todas__';
+
     private function getProductos(?string $nombrePecosa = null): array
     {
         if (!$nombrePecosa) {
             $nombrePecosa = DB::table('pecosa_primaria')
                 ->whereNotNull('nombre_pecosa')
-                ->select('nombre_pecosa', 'created_at')
+                ->select('nombre_pecosa', 'fecha_entrega')
                 ->get()
                 ->groupBy('nombre_pecosa')
-                ->map(fn($grupo) => $grupo->max('created_at'))
-                ->sortDesc()
+                ->map(fn($grupo) => $grupo->max('fecha_entrega'))
+                ->sort()
                 ->keys()
-                ->first();
+                ->last();
+        }
+
+        // "Todas las Pecosas": suma cant/volumen del mismo producto+marca a
+        // traves de todas las entregas, para repartir el acumulado del año
+        // en un solo reparto en vez de uno por cada Pecosa individual.
+        if ($nombrePecosa === self::TODAS) {
+            return DB::table('pecosa_primaria')
+                ->selectRaw('MIN(id) as id, descripcion, unid, MAX(presentacion) as presentacion, SUM(cant) as cant_total')
+                ->groupBy('descripcion', 'unid')
+                ->orderBy('descripcion')
+                ->get()
+                ->map(fn($p) => [
+                    'id'           => $p->id,
+                    'nombre'       => $p->descripcion,
+                    'unid'         => $p->unid,
+                    'presentacion' => number_format($p->presentacion, 3),
+                    'cant_total'   => (int) $p->cant_total,
+                ])->toArray();
         }
 
         return DB::table('pecosa_primaria')

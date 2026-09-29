@@ -24,6 +24,9 @@
                     <label class="text-xs font-medium text-gray-500">Pecosa a distribuir:</label>
                     <select onchange="window.location.href='{{ route('pecosa.primaria.prorrateo') }}?pecosa=' + encodeURIComponent(this.value)"
                             class="text-xs border border-gray-200 rounded-lg px-2 py-1 font-medium text-gray-700">
+                        <option value="__todas__" {{ $pecosaSeleccionada === '__todas__' ? 'selected' : '' }}>
+                            📦 Todas las Pecosas (total acumulado)
+                        </option>
                         @foreach(collect($listaPecosas)->groupBy(fn($p) => \Carbon\Carbon::parse($p['fecha'])->format('Y')) as $anio => $pecosasDelAnio)
                             <optgroup label="{{ $anio }}">
                                 @foreach($pecosasDelAnio as $p)
