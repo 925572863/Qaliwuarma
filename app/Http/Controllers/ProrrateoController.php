@@ -37,9 +37,9 @@ class ProrrateoController extends Controller
         return DB::table('pecosa_primaria')
             ->whereNotNull('nombre_pecosa')
             ->select('nombre_pecosa')
-            ->selectRaw('COUNT(*) as productos, MAX(created_at) as fecha')
+            ->selectRaw('COUNT(*) as productos, MAX(fecha_entrega) as fecha')
             ->groupBy('nombre_pecosa')
-            ->orderByDesc('fecha')
+            ->orderBy('fecha')
             ->get()
             ->map(fn($p) => [
                 'nombre'    => $p->nombre_pecosa,
@@ -181,7 +181,7 @@ class ProrrateoController extends Controller
     public function primaria(Request $request)
     {
         $listaPecosas    = $this->getListaPecosas();
-        $pecosaSeleccionada = $request->query('pecosa') ?: ($listaPecosas[0]['nombre'] ?? null);
+        $pecosaSeleccionada = $request->query('pecosa') ?: (collect($listaPecosas)->last()['nombre'] ?? null);
 
         $secciones = $this->getSecciones();
         $productos = $this->getProductos($pecosaSeleccionada);

@@ -18,14 +18,16 @@ class PecosaInicialController extends Controller
         // cual es la mas reciente). Se agrupa en PHP, no con SELECT DISTINCT +
         // ORDER BY de otra columna, que PostgreSQL rechaza si esa columna no
         // está en el SELECT.
+        // Ordenadas cronologicamente por fecha_entrega (enero -> diciembre),
+        // no por cuando se subieron al sistema.
         $pecosasOrdenadas = PecosaInicial::whereNotNull('nombre_pecosa')
-            ->select('nombre_pecosa', 'created_at')
+            ->select('nombre_pecosa', 'fecha_entrega')
             ->get()
             ->groupBy('nombre_pecosa')
-            ->map(fn($grupo) => $grupo->max('created_at'))
-            ->sortDesc();
+            ->map(fn($grupo) => $grupo->max('fecha_entrega'))
+            ->sort();
         $pecosasSubidas    = $pecosasOrdenadas->keys()->values();
-        $pecosaMasReciente = $pecosasSubidas->first();
+        $pecosaMasReciente = $pecosasSubidas->last();
 
         // Por defecto (sin buscar ni elegir Pecosa a proposito) solo se
         // muestra la Pecosa mas reciente, para que la anterior no aparezca
