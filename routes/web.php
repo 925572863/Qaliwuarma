@@ -17,6 +17,8 @@ use App\Http\Controllers\ExportController;
 use App\Http\Controllers\AnalisisContextoController;
 use App\Http\Controllers\ProrrateoInicialController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\AnemiaController;
+use App\Http\Controllers\OrientacionPadresController;
 use Illuminate\Support\Facades\Route;
 
 // Redirect root to dashboard
@@ -84,6 +86,14 @@ Route::get('/exportar-datos-migracion', function () {
 })->middleware('auth');
 
 // Auth
+// Módulo de orientación a familias de estudiantes con anemia: acceso público
+// vía el enlace con la matrícula del estudiante, sin credenciales del sistema
+// interno (los padres no tienen cuenta de usuario).
+Route::prefix('orientacion')->name('orientacion.')->middleware('throttle:60,1')->group(function () {
+    Route::get('/{matricula}', [OrientacionPadresController::class, 'show'])->name('show');
+    Route::post('/{matricula}/cuestionario', [OrientacionPadresController::class, 'guardarCuestionario'])->name('cuestionario');
+});
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
@@ -243,4 +253,15 @@ Route::middleware(['auth', 'throttle:120,1'])->group(function () {
     // Gestión de usuarios
     Route::resource('users', UserController::class)->except(['show']);
     Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
+
+    // Módulo de orientación a familias (anemia) — lado administrativo
+    Route::prefix('anemia')->name('anemia.')->group(function () {
+        Route::get('/',                     [AnemiaController::class, 'index'])->name('index');
+        Route::get('/buscar-alumno',        [AnemiaController::class, 'buscarAlumno'])->name('buscar-alumno');
+        Route::post('/',                    [AnemiaController::class, 'store'])->name('store');
+        Route::delete('/{caso}',            [AnemiaController::class, 'destroy'])->name('destroy');
+        Route::post('/recomendaciones',     [AnemiaController::class, 'storeRecomendacion'])->name('recomendaciones.store');
+        Route::delete('/recomendaciones/{recomendacion}', [AnemiaController::class, 'destroyRecomendacion'])->name('recomendaciones.destroy');
+        Route::get('/resultados',           [AnemiaController::class, 'resultados'])->name('resultados');
+    });
 });
