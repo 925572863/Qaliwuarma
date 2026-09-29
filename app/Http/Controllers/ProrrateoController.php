@@ -201,7 +201,9 @@ class ProrrateoController extends Controller
     public function primaria(Request $request)
     {
         $listaPecosas    = $this->getListaPecosas();
-        $pecosaSeleccionada = $request->query('pecosa') ?: (collect($listaPecosas)->last()['nombre'] ?? null);
+        // Por defecto siempre se reparte el total acumulado de todas las
+        // Pecosas (el usuario ya no quiere elegir una por una).
+        $pecosaSeleccionada = $request->query('pecosa') ?: self::TODAS;
 
         $secciones = $this->getSecciones();
         $productos = $this->getProductos($pecosaSeleccionada);
