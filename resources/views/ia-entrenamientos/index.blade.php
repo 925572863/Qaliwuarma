@@ -30,8 +30,9 @@
             <div><span class="text-gray-400">Profundidad:</span> <span class="font-semibold">{{ $e->max_depth }}</span></div>
             <div><span class="text-gray-400">% depurados:</span> <span class="font-semibold">{{ $e->pct_depurados }}%</span></div>
             <div><span class="text-gray-400">Tiempo:</span> <span class="font-semibold">{{ $e->tiempo_entrenamiento_seg }}s</span></div>
+            <div><span class="text-gray-400">Margen seg. (p95):</span> <span class="font-semibold">{{ $e->margen_seguridad_p95 }}</span></div>
         </div>
-        <p class="text-xs text-gray-400 mt-3">{{ $e->created_at->format('d/m/Y H:i') }} · {{ $e->muestras ?? $e->registros_depurados }} muestras · {{ $e->k_folds }}-fold CV</p>
+        <p class="text-xs text-gray-400 mt-3">{{ $e->created_at->format('d/m/Y H:i') }} · {{ $e->muestras ?? $e->registros_depurados }} muestras · validación temporal ({{ $e->k_folds }} semanas evaluadas)</p>
         @else
         <p class="text-sm text-gray-400 mt-3">Aún no se ha entrenado ningún modelo para este nivel.</p>
         @endif

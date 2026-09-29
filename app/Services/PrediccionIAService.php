@@ -264,26 +264,32 @@ class PrediccionIAService
             'registros_depurados'      => $preprocesamiento['registros_depurados'] ?? 0,
             'pct_depurados'            => $preprocesamiento['pct_depurados'] ?? 0,
             'pct_completos'            => $preprocesamiento['pct_completos'] ?? 0,
-            'k_folds'                  => $resultado['k_folds'] ?? 0,
+            // 'k_folds' y 'folds_detalle' se reutilizan para la validacion temporal
+            // con origen movil (cantidad de semanas evaluadas y su detalle por
+            // semana), que reemplazo a la validacion cruzada k-fold original.
+            'k_folds'                  => $resultado['semanas_evaluadas'] ?? 0,
             'mae'                      => $resultado['metricas']['mae'] ?? null,
             'rmse'                     => $resultado['metricas']['rmse'] ?? null,
             'mape'                     => $resultado['metricas']['mape'] ?? null,
             'r2'                       => $resultado['metricas']['r2'] ?? null,
-            'folds_detalle'            => $resultado['folds_detalle'] ?? [],
+            'folds_detalle'            => $resultado['semanas_detalle'] ?? [],
+            'margen_seguridad_p95'     => $resultado['margen_seguridad_p95'] ?? null,
+            'muestras_entreno_inicial' => $resultado['muestras_entreno_inicial'] ?? null,
             'n_estimators'             => $resultado['n_estimators'] ?? null,
             'max_depth'                => $resultado['max_depth'] ?? null,
             'tiempo_entrenamiento_seg' => $resultado['tiempo_entrenamiento_seg'] ?? null,
         ]);
 
         return [
-            'muestras'    => $resultado['muestras'] ?? null,
-            'n_arboles'   => $resultado['n_estimators'] ?? null,
-            'profundidad' => $resultado['max_depth'] ?? null,
-            'k_folds'     => $resultado['k_folds'] ?? null,
-            'mae'         => $resultado['metricas']['mae'] ?? null,
-            'rmse'        => $resultado['metricas']['rmse'] ?? null,
-            'mape'        => $resultado['metricas']['mape'] ?? null,
-            'r2'          => $resultado['metricas']['r2'] ?? null,
+            'muestras'             => $resultado['muestras'] ?? null,
+            'n_arboles'            => $resultado['n_estimators'] ?? null,
+            'profundidad'          => $resultado['max_depth'] ?? null,
+            'semanas_evaluadas'    => $resultado['semanas_evaluadas'] ?? null,
+            'margen_seguridad_p95' => $resultado['margen_seguridad_p95'] ?? null,
+            'mae'                  => $resultado['metricas']['mae'] ?? null,
+            'rmse'                 => $resultado['metricas']['rmse'] ?? null,
+            'mape'                 => $resultado['metricas']['mape'] ?? null,
+            'r2'                   => $resultado['metricas']['r2'] ?? null,
         ];
     }
 

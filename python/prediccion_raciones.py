@@ -5,7 +5,12 @@ diaria de raciones del servicio alimentario escolar.
 Implementa el algoritmo descrito en la tesis "Modelo de aprendizaje automatico
 para optimizar la gestion del servicio alimentario escolar en una institucion
 educativa de Piura, 2026": Random Forest (Breiman, 2001), evaluado mediante
-validacion cruzada k-fold y las metricas MAE, RMSE, MAPE y R^2.
+VALIDACION TEMPORAL CON ORIGEN MOVIL (rolling-origin / walk-forward): se
+entrena inicialmente con un tramo base del historico y luego se reentrena al
+final de cada semana con todos los datos anteriores, prediciendo unicamente
+los dias de la semana siguiente (nunca datos futuros a los que el modelo no
+tendria acceso en produccion). Se reporta MAE, RMSE, MAPE y R^2 sobre todas
+las predicciones fuera de muestra concatenadas.
 
 Este script es invocado por Laravel (PrediccionIAService) via linea de
 comandos y se comunica exclusivamente por JSON (stdin -> stdout), sin
@@ -26,7 +31,6 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import KFold
 from sklearn.base import clone
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
@@ -34,6 +38,13 @@ MIN_MUESTRAS = 10
 N_ARBOLES = 300
 PROFUNDIDAD_MAX = 8
 RANDOM_STATE = 42
+
+# Validacion temporal con origen movil: proporcion del historico que se usa
+# como entrenamiento inicial (equivalente a "marzo-junio" en la tesis, ~40%
+# de los dias lectivos) y tamano del paso semanal de reentrenamiento (5 dias
+# lectivos = 1 semana escolar).
+PROPORCION_ENTRENO_INICIAL = 0.4
+PASO_SEMANAL = 5
 
 
 def cargar_historico(ruta_datos: str) -> pd.DataFrame:
@@ -118,6 +129,77 @@ def calcular_metricas(y_true, y_pred) -> dict:
     }
 
 
+def nuevo_modelo() -> RandomForestRegressor:
+    return RandomForestRegressor(
+        n_estimators=N_ARBOLES,
+        max_depth=PROFUNDIDAD_MAX,
+        random_state=RANDOM_STATE,
+        n_jobs=-1,
+    )
+
+
+def validar_temporal(X: np.ndarray, y: np.ndarray, fechas: pd.Series) -> dict:
+    """
+    Validacion temporal con origen movil (rolling-origin / walk-forward):
+    entrena con el tramo inicial del historico y, desde ahi, avanza semana
+    por semana reentrenando SOLO con datos ya conocidos hasta ese punto y
+    prediciendo unicamente los dias de la semana siguiente. A diferencia de
+    K-Fold, ningun dato "futuro" participa jamas del entrenamiento de una
+    prediccion pasada, tal como ocurriria en produccion.
+    """
+    n = len(X)
+    corte_inicial = max(MIN_MUESTRAS, int(n * PROPORCION_ENTRENO_INICIAL))
+
+    if corte_inicial >= n:
+        return {
+            "metricas": {"mae": None, "rmse": None, "mape": None, "r2": None},
+            "margen_seguridad_p95": None,
+            "semanas_evaluadas": 0,
+            "muestras_entreno_inicial": int(corte_inicial),
+            "semanas_detalle": [],
+        }
+
+    y_true_oof = []
+    y_pred_oof = []
+    semanas_detalle = []
+
+    origen = corte_inicial
+    semana = 0
+    while origen < n:
+        fin_ventana = min(origen + PASO_SEMANAL, n)
+
+        estimador = clone(nuevo_modelo())
+        estimador.fit(X[:origen], y[:origen])
+        pred_semana = estimador.predict(X[origen:fin_ventana])
+
+        semana += 1
+        m_semana = calcular_metricas(y[origen:fin_ventana], pred_semana)
+        semanas_detalle.append({
+            "semana": semana,
+            "desde": fechas.iloc[origen].strftime("%Y-%m-%d"),
+            "hasta": fechas.iloc[fin_ventana - 1].strftime("%Y-%m-%d"),
+            "muestras_entreno": int(origen),
+            **m_semana,
+        })
+
+        y_true_oof.extend(y[origen:fin_ventana].tolist())
+        y_pred_oof.extend(pred_semana.tolist())
+
+        origen = fin_ventana
+
+    metricas = calcular_metricas(y_true_oof, y_pred_oof)
+    errores_abs = np.abs(np.array(y_true_oof) - np.array(y_pred_oof))
+    margen_seguridad = float(np.percentile(errores_abs, 95)) if len(errores_abs) else None
+
+    return {
+        "metricas": metricas,
+        "margen_seguridad_p95": round(margen_seguridad, 2) if margen_seguridad is not None else None,
+        "semanas_evaluadas": semana,
+        "muestras_entreno_inicial": int(corte_inicial),
+        "semanas_detalle": semanas_detalle,
+    }
+
+
 def entrenar(nivel: str, ruta_datos: str, ruta_modelo: str, k_folds: int = 5) -> dict:
     df = cargar_historico(ruta_datos)
     if df.empty:
@@ -130,46 +212,25 @@ def entrenar(nivel: str, ruta_datos: str, ruta_modelo: str, k_folds: int = 5) ->
     X = df[FEATURE_COLS].values
     y = df["raciones"].values
 
-    def nuevo_modelo():
-        return RandomForestRegressor(
-            n_estimators=N_ARBOLES,
-            max_depth=PROFUNDIDAD_MAX,
-            random_state=RANDOM_STATE,
-            n_jobs=-1,
-        )
-
     inicio = time.perf_counter()
 
-    # Entrenamiento y validacion (dimension 2 de la VI): validacion cruzada k-fold,
-    # con metricas registradas por cada pliegue (Ficha 2) ademas del agregado global.
-    n_splits = min(k_folds, len(df))
-    folds_detalle = []
-    if n_splits >= 2:
-        kf = KFold(n_splits=n_splits, shuffle=True, random_state=RANDOM_STATE)
-        y_true_oof = []
-        y_pred_oof = []
+    # Entrenamiento y validacion (dimension 2 de la VI): validacion temporal
+    # con origen movil, tal como exige el diseno metodologico de la tesis
+    # (entrenamiento inicial + reentrenamiento semanal solo con datos pasados).
+    resultado_validacion = validar_temporal(X, y, df["fecha"])
+    metricas = resultado_validacion["metricas"]
 
-        for i, (idx_train, idx_test) in enumerate(kf.split(X), start=1):
-            estimador_fold = clone(nuevo_modelo())
-            estimador_fold.fit(X[idx_train], y[idx_train])
-            pred_fold = estimador_fold.predict(X[idx_test])
-
-            m_fold = calcular_metricas(y[idx_test], pred_fold)
-            folds_detalle.append({"fold": i, **m_fold})
-
-            y_true_oof.extend(y[idx_test].tolist())
-            y_pred_oof.extend(pred_fold.tolist())
-
-        metricas = calcular_metricas(y_true_oof, y_pred_oof)
-    else:
-        metricas = {"mae": None, "rmse": None, "mape": None, "r2": None}
-
-    # Modelo final entrenado con el 100% de los datos disponibles
+    # Modelo final entrenado con el 100% de los datos disponibles, para las
+    # predicciones futuras reales (no para la metrica reportada arriba).
     modelo = nuevo_modelo()
     modelo.fit(X, y)
     tiempo_entrenamiento = round(time.perf_counter() - inicio, 2)
 
-    joblib.dump({"modelo": modelo, "nivel": nivel}, ruta_modelo)
+    joblib.dump({
+        "modelo": modelo,
+        "nivel": nivel,
+        "margen_seguridad_p95": resultado_validacion.get("margen_seguridad_p95"),
+    }, ruta_modelo)
 
     return {
         "ok": True,
@@ -177,10 +238,13 @@ def entrenar(nivel: str, ruta_datos: str, ruta_modelo: str, k_folds: int = 5) ->
         "muestras": int(len(df)),
         "n_estimators": N_ARBOLES,
         "max_depth": PROFUNDIDAD_MAX,
-        "k_folds": n_splits,
+        "validacion": "temporal_origen_movil",
+        "semanas_evaluadas": resultado_validacion["semanas_evaluadas"],
+        "muestras_entreno_inicial": resultado_validacion.get("muestras_entreno_inicial"),
+        "margen_seguridad_p95": resultado_validacion.get("margen_seguridad_p95"),
         "tiempo_entrenamiento_seg": tiempo_entrenamiento,
         "preprocesamiento": preprocesamiento,
-        "folds_detalle": folds_detalle,
+        "semanas_detalle": resultado_validacion["semanas_detalle"],
         "metricas": metricas,
     }
 
@@ -192,6 +256,7 @@ def predecir(nivel: str, ruta_datos: str, ruta_modelo: str, dias: int = 5) -> di
         return {"ok": False, "error": "modelo_no_entrenado"}
 
     modelo = paquete["modelo"]
+    margen_seguridad = paquete.get("margen_seguridad_p95") or 0
 
     df = cargar_historico(ruta_datos)
     if df.empty:
@@ -223,13 +288,19 @@ def predecir(nivel: str, ruta_datos: str, ruta_modelo: str, dias: int = 5) -> di
         X_pred = np.array(
             [[fecha.weekday(), fecha.day, fecha.month, idx, ma3, ma7, 0, 0]]
         )
-        pred = max(0, round(float(modelo.predict(X_pred)[0])))
-        serie.append(pred)
+        asistencia_estimada = max(0, round(float(modelo.predict(X_pred)[0])))
+        # La cantidad de raciones a preparar suma el margen de seguridad
+        # (percentil 95 del error del modelo en validacion temporal) a la
+        # asistencia estimada, tal como define la tesis.
+        raciones_sugeridas = int(asistencia_estimada + round(margen_seguridad))
+        serie.append(asistencia_estimada)
 
         predicciones.append({
             "fecha": fecha.strftime("%Y-%m-%d"),
             "fecha_legible": f"{dias_es[fecha.weekday()].capitalize()} {fecha.day}/{fecha.month:02d}",
-            "raciones_predichas": int(pred),
+            "asistencia_estimada": int(asistencia_estimada),
+            "margen_seguridad": round(margen_seguridad),
+            "raciones_predichas": raciones_sugeridas,
         })
         dias_agregados += 1
 

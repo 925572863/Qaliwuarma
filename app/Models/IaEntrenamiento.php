@@ -17,6 +17,7 @@ class IaEntrenamiento extends Model
         'nivel', 'grado', 'fase',
         'registros_totales', 'registros_depurados', 'pct_depurados', 'pct_completos',
         'k_folds', 'mae', 'rmse', 'mape', 'r2', 'folds_detalle',
+        'margen_seguridad_p95', 'muestras_entreno_inicial',
         'n_estimators', 'max_depth', 'tiempo_entrenamiento_seg',
     ];
 

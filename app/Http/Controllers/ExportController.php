@@ -119,7 +119,8 @@ class ExportController extends Controller
     {
         $encabezados = [
             'fecha', 'nivel', 'fase', 'pct_depurados', 'pct_completos',
-            'k_folds', 'mae', 'rmse', 'mape', 'r2', 'n_estimators', 'max_depth', 'tiempo_entrenamiento_seg',
+            'semanas_evaluadas', 'mae', 'rmse', 'mape', 'r2', 'margen_seguridad_p95',
+            'n_estimators', 'max_depth', 'tiempo_entrenamiento_seg',
         ];
 
         $filas = IaEntrenamiento::orderBy('created_at')->cursor()->map(fn ($e) => [
@@ -133,6 +134,7 @@ class ExportController extends Controller
             $e->rmse,
             $e->mape,
             $e->r2,
+            $e->margen_seguridad_p95,
             $e->n_estimators,
             $e->max_depth,
             $e->tiempo_entrenamiento_seg,

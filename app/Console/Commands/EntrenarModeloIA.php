@@ -45,7 +45,7 @@ class EntrenarModeloIA extends Command
             return;
         }
 
-        $this->info("  Entrenado con {$resultado['muestras']} muestras ({$resultado['n_arboles']} árboles, profundidad {$resultado['profundidad']}, {$resultado['k_folds']}-fold CV).");
-        $this->info("  MAE: {$resultado['mae']} | RMSE: {$resultado['rmse']} | MAPE: {$resultado['mape']}% | R²: {$resultado['r2']}");
+        $this->info("  Entrenado con {$resultado['muestras']} muestras ({$resultado['n_arboles']} árboles, profundidad {$resultado['profundidad']}, validación temporal: {$resultado['semanas_evaluadas']} semanas).");
+        $this->info("  MAE: {$resultado['mae']} | RMSE: {$resultado['rmse']} | MAPE: {$resultado['mape']}% | R²: {$resultado['r2']} | Margen de seguridad (p95): {$resultado['margen_seguridad_p95']}");
     }
 }

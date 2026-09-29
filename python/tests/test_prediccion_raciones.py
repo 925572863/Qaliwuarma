@@ -198,17 +198,18 @@ class TestEntrenar:
         assert resultado["error"] == "sin_datos"
 
     def test_entrenamiento_exitoso_devuelve_las_tres_fichas(self, ruta_datos_valida, ruta_modelo):
-        resultado = pr.entrenar("primaria", ruta_datos_valida, ruta_modelo, k_folds=5)
+        resultado = pr.entrenar("primaria", ruta_datos_valida, ruta_modelo)
 
         assert resultado["ok"] is True
         # Ficha 1
         assert "preprocesamiento" in resultado
         assert resultado["preprocesamiento"]["pct_depurados"] > 0
-        # Ficha 2
+        # Ficha 2 (validacion temporal con origen movil)
         assert resultado["metricas"]["mae"] is not None
-        assert len(resultado["folds_detalle"]) == resultado["k_folds"]
-        for fold in resultado["folds_detalle"]:
-            assert set(fold.keys()) >= {"fold", "mae", "rmse", "mape", "r2"}
+        assert resultado["margen_seguridad_p95"] is not None
+        assert len(resultado["semanas_detalle"]) == resultado["semanas_evaluadas"]
+        for semana in resultado["semanas_detalle"]:
+            assert set(semana.keys()) >= {"semana", "desde", "hasta", "mae", "rmse", "mape", "r2"}
         # Ficha 3
         assert resultado["n_estimators"] == pr.N_ARBOLES
         assert resultado["max_depth"] == pr.PROFUNDIDAD_MAX
@@ -219,16 +220,17 @@ class TestEntrenar:
 
         assert Path(ruta_modelo).exists()
 
-    def test_k_folds_se_ajusta_si_hay_menos_muestras_que_folds(self, tmp_path, ruta_modelo):
-        # 11 registros -> tras depuracion, menos que 5*2, pero >= MIN_MUESTRAS
+    def test_validacion_temporal_con_pocas_muestras_no_falla(self, tmp_path, ruta_modelo):
+        # Con pocas muestras, la ventana de entreno inicial puede consumir
+        # casi todo el historico: debe devolver 0+ semanas evaluadas sin fallar.
         registros = generar_historico(11)
-        ruta = tmp_path / "datos_pocos_folds.json"
+        ruta = tmp_path / "datos_pocas_muestras.json"
         ruta.write_text(json.dumps(registros), encoding="utf-8")
 
-        resultado = pr.entrenar("primaria", str(ruta), ruta_modelo, k_folds=5)
+        resultado = pr.entrenar("primaria", str(ruta), ruta_modelo)
 
         assert resultado["ok"] is True
-        assert resultado["k_folds"] <= 5
+        assert resultado["semanas_evaluadas"] >= 0
 
 
 # ── predecir ──────────────────────────────────────────────────────────────
