@@ -288,18 +288,11 @@ class ProrrateoController extends Controller
             DB::table('prorrateo_primaria')->insert($chunk);
         }
 
-        // Descontar stock de pecosa_primaria
-        $totalesPorProducto = [];
-        foreach ($cantidades as $productos) {
-            foreach ($productos as $pecosaId => $cantidad) {
-                $totalesPorProducto[$pecosaId] = ($totalesPorProducto[$pecosaId] ?? 0) + max(0, (int) $cantidad);
-            }
-        }
-        foreach ($totalesPorProducto as $pecosaId => $totalDescontar) {
-            DB::table('pecosa_primaria')
-                ->where('id', $pecosaId)
-                ->decrement('cant', $totalDescontar);
-        }
+        // NOTA: antes se descontaba el stock real de pecosa_primaria aqui,
+        // pero eso hacia que volver a guardar (o corregir) la MISMA
+        // distribucion la restara dos veces, vaciando el inventario real a
+        // 0. El stock de la Pecosa es un dato de inventario recibido, no
+        // debe modificarse por guardar un reparto (igual que en Inicial).
 
         // Va directo a la distribución recién guardada (no al listado general),
         // para no perder de vista qué Pecosa se acaba de repartir.
