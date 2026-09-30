@@ -34,18 +34,31 @@ class ProrrateoController extends Controller
      */
     private function getListaPecosas(): array
     {
+        // Ids de productos que ya aparecen en ALGUNA distribucion guardada:
+        // si TODOS los productos de una Pecosa ya estan ahi, esa Pecosa
+        // cuenta como "ya repartida" y se saca de la lista de pendientes.
+        $idsYaDistribuidos = DB::table('prorrateo_primaria')
+            ->whereNotNull('pecosa_primaria_id')
+            ->distinct()
+            ->pluck('pecosa_primaria_id');
+
         return DB::table('pecosa_primaria')
             ->whereNotNull('nombre_pecosa')
-            ->select('nombre_pecosa')
-            ->selectRaw('COUNT(*) as productos, MAX(fecha_entrega) as fecha')
-            ->groupBy('nombre_pecosa')
-            ->orderBy('fecha')
+            ->select('id', 'nombre_pecosa', 'fecha_entrega')
             ->get()
-            ->map(fn($p) => [
-                'nombre'    => $p->nombre_pecosa,
-                'productos' => $p->productos,
-                'fecha'     => $p->fecha,
-            ])->toArray();
+            ->groupBy('nombre_pecosa')
+            ->map(function ($filas, $nombre) use ($idsYaDistribuidos) {
+                $ids = $filas->pluck('id');
+                return [
+                    'nombre'      => $nombre,
+                    'productos'   => $filas->count(),
+                    'fecha'       => $filas->max('fecha_entrega'),
+                    'distribuida' => $ids->diff($idsYaDistribuidos)->isEmpty(),
+                ];
+            })
+            ->sortBy('fecha')
+            ->values()
+            ->toArray();
     }
 
     /**
@@ -201,9 +214,11 @@ class ProrrateoController extends Controller
     public function primaria(Request $request)
     {
         $listaPecosas    = $this->getListaPecosas();
-        // Por defecto siempre se reparte el total acumulado de todas las
-        // Pecosas (el usuario ya no quiere elegir una por una).
-        $pecosaSeleccionada = $request->query('pecosa') ?: self::TODAS;
+        $pendientes      = collect($listaPecosas)->reject(fn($p) => $p['distribuida'])->values();
+        // Por defecto se elige la Pecosa pendiente mas antigua (para ir
+        // repartiendo en orden); si ya no queda ninguna pendiente, se cae
+        // al total acumulado de todas.
+        $pecosaSeleccionada = $request->query('pecosa') ?: ($pendientes->first()['nombre'] ?? self::TODAS);
 
         $secciones = $this->getSecciones();
         $productos = $this->getProductos($pecosaSeleccionada);

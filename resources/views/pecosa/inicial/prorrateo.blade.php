@@ -19,29 +19,42 @@
                     <span class="text-amber-500 font-medium">Calculado automáticamente — aún no guardado</span>
                 @endif
             </p>
+            @php
+                $pendientesCount = collect($listaPecosas)->reject(fn($p) => $p['distribuida'])->count();
+            @endphp
             @if(count($listaPecosas) > 1)
                 <div class="mt-2 flex items-center space-x-2">
-                    <span class="text-xs font-bold text-orange-700 bg-orange-50 border border-orange-200 rounded-lg px-2 py-1">
-                        📦 Repartiendo el total acumulado de todas las Pecosas ({{ count($listaPecosas) }})
+                    <span class="text-xs font-bold {{ $pendientesCount > 0 ? 'text-orange-700 bg-orange-50 border-orange-200' : 'text-green-700 bg-green-50 border-green-200' }} border rounded-lg px-2 py-1">
+                        @if($pendientesCount > 0)
+                            📦 {{ $pendientesCount }} Pecosa(s) pendiente(s) de repartir
+                        @else
+                            ✅ Todas las Pecosas ya fueron repartidas
+                        @endif
                     </span>
-                    <details class="text-xs">
-                        <summary class="text-gray-400 cursor-pointer hover:text-gray-600">Distribuir solo una Pecosa en particular</summary>
-                        <select onchange="window.location.href='{{ route('pecosa.inicial.prorrateo') }}?pecosa=' + encodeURIComponent(this.value)"
-                                class="mt-1 text-xs border border-gray-200 rounded-lg px-2 py-1 font-medium text-gray-700">
-                            <option value="__todas__" {{ $pecosaSeleccionada === '__todas__' ? 'selected' : '' }}>
-                                Todas las Pecosas (total acumulado)
-                            </option>
-                            @foreach(collect($listaPecosas)->groupBy(fn($p) => \Carbon\Carbon::parse($p['fecha'])->format('Y')) as $anio => $pecosasDelAnio)
-                                <optgroup label="{{ $anio }}">
-                                    @foreach($pecosasDelAnio as $p)
-                                        <option value="{{ $p['nombre'] }}" {{ $p['nombre'] == $pecosaSeleccionada ? 'selected' : '' }}>
-                                            {{ $p['nombre'] }} — {{ $p['productos'] }} producto(s)
-                                        </option>
-                                    @endforeach
-                                </optgroup>
-                            @endforeach
-                        </select>
-                    </details>
+                    <select onchange="window.location.href='{{ route('pecosa.inicial.prorrateo') }}?pecosa=' + encodeURIComponent(this.value)"
+                            class="text-xs border border-gray-200 rounded-lg px-2 py-1 font-medium text-gray-700">
+                        <option value="__todas__" {{ $pecosaSeleccionada === '__todas__' ? 'selected' : '' }}>
+                            Todas las Pecosas (total acumulado)
+                        </option>
+                        @foreach(collect($listaPecosas)->reject(fn($p) => $p['distribuida'])->groupBy(fn($p) => \Carbon\Carbon::parse($p['fecha'])->format('Y')) as $anio => $pecosasDelAnio)
+                            <optgroup label="{{ $anio }} — pendientes">
+                                @foreach($pecosasDelAnio as $p)
+                                    <option value="{{ $p['nombre'] }}" {{ $p['nombre'] == $pecosaSeleccionada ? 'selected' : '' }}>
+                                        {{ $p['nombre'] }} — {{ $p['productos'] }} producto(s)
+                                    </option>
+                                @endforeach
+                            </optgroup>
+                        @endforeach
+                        @if($pendientesCount < count($listaPecosas))
+                            <optgroup label="Ya repartidas">
+                                @foreach(collect($listaPecosas)->filter(fn($p) => $p['distribuida']) as $p)
+                                    <option value="{{ $p['nombre'] }}" {{ $p['nombre'] == $pecosaSeleccionada ? 'selected' : '' }}>
+                                        ✔ {{ $p['nombre'] }} — {{ $p['productos'] }} producto(s)
+                                    </option>
+                                @endforeach
+                            </optgroup>
+                        @endif
+                    </select>
                 </div>
             @endif
         </div>
