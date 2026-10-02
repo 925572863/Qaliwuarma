@@ -811,9 +811,12 @@ PROMPT;
             return back()->withErrors(['archivo' => 'El archivo debe tener al menos las columnas: fecha y presentes.']);
         }
 
-        $nivel     = $request->get('nivel');
+        $nivel      = $request->get('nivel');
         $importados = 0;
-        $errores   = [];
+        $errores    = [];
+        $registros  = [];
+        $ahora      = now();
+        $userId     = auth()->id();
 
         for ($i = $headerIdx + 1; $i < count($rows); $i++) {
             $row = $rows[$i];
@@ -848,30 +851,33 @@ PROMPT;
 
                 if (!$fecha || $presentes < 0) continue;
 
-                $existe = \Illuminate\Support\Facades\DB::table('registros_asistencia')
-                    ->where('fecha', $fecha)->where('nivel', $nivel)
-                    ->where('grado', $grado)->where('seccion', $seccion)->first();
-
-                $datos = [
-                    'total_alumnos' => max($total, $presentes),
-                    'presentes'     => $presentes,
-                    'raciones'      => $raciones ?: $presentes,
+                $registros[] = [
+                    'fecha'          => $fecha,
+                    'nivel'          => $nivel,
+                    'grado'          => $grado,
+                    'seccion'        => $seccion,
+                    'total_alumnos'  => max($total, $presentes),
+                    'presentes'      => $presentes,
+                    'raciones'       => $raciones ?: $presentes,
                     'raciones_planificadas' => $colRacionesPlan !== null ? (int) ($row[$colRacionesPlan] ?? 0) ?: null : null,
-                    'updated_at'    => now(),
+                    'user_id'        => $userId,
+                    'created_at'     => $ahora,
+                    'updated_at'     => $ahora,
                 ];
-
-                if ($existe) {
-                    \Illuminate\Support\Facades\DB::table('registros_asistencia')->where('id', $existe->id)->update($datos);
-                } else {
-                    \Illuminate\Support\Facades\DB::table('registros_asistencia')->insert(array_merge($datos, [
-                        'fecha' => $fecha, 'nivel' => $nivel, 'grado' => $grado,
-                        'seccion' => $seccion, 'user_id' => auth()->id(), 'created_at' => now(),
-                    ]));
-                }
                 $importados++;
             } catch (\Exception $e) {
                 $errores[] = "Fila " . ($i + 1) . ": " . $e->getMessage();
             }
+        }
+
+        // Insertar/actualizar en lotes (mucho más rápido que fila por fila,
+        // evita timeouts con archivos grandes de varios miles de filas).
+        foreach (array_chunk($registros, 300) as $lote) {
+            \Illuminate\Support\Facades\DB::table('registros_asistencia')->upsert(
+                $lote,
+                ['fecha', 'nivel', 'grado', 'seccion'],
+                ['total_alumnos', 'presentes', 'raciones', 'raciones_planificadas', 'user_id', 'updated_at']
+            );
         }
 
         $msg = "Se importaron {$importados} registros correctamente.";
