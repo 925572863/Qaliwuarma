@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Alumno;
 use App\Models\AlumnoAnemia;
+use App\Models\ControlRacionAnemia;
 use App\Models\CuestionarioAnemia;
 use App\Models\RecomendacionNutricion;
 use Illuminate\Http\Request;
@@ -12,14 +13,47 @@ class AnemiaController extends Controller
 {
     public function index(Request $request)
     {
-        $casos = AlumnoAnemia::with('alumno')
+        $hoy = now()->toDateString();
+        $inicioMes = now()->startOfMonth()->toDateString();
+
+        $casos = AlumnoAnemia::with(['alumno', 'controlesRacion' => function ($q) use ($inicioMes) {
+                $q->where('fecha', '>=', $inicioMes);
+            }])
             ->where('activo', true)
             ->orderByDesc('fecha_tamizaje')
-            ->get();
+            ->get()
+            ->map(function ($caso) use ($hoy) {
+                $controlHoy = $caso->controlesRacion->first(fn($c) => $c->fecha->toDateString() === $hoy);
+                $caso->recibio_hoy = $controlHoy?->recibio_racion;
+                $caso->dias_marcados_mes = $caso->controlesRacion->count();
+                $caso->dias_recibidos_mes = $caso->controlesRacion->where('recibio_racion', true)->count();
+                return $caso;
+            });
 
         $recomendaciones = RecomendacionNutricion::orderBy('nivel')->orderBy('producto')->get();
 
         return view('anemia.index', compact('casos', 'recomendaciones'));
+    }
+
+    // ── Control diario de ración (responsabilidad del CAE) ─────────────────
+
+    public function marcarRacion(Request $request, AlumnoAnemia $caso)
+    {
+        $recibio = $request->boolean('recibio_racion', true);
+
+        ControlRacionAnemia::updateOrCreate(
+            ['alumno_anemia_id' => $caso->id, 'fecha' => now()->toDateString()],
+            ['recibio_racion' => $recibio, 'user_id' => auth()->id()]
+        );
+
+        return back()->with('success', 'Control de ración actualizado.');
+    }
+
+    public function historialRacion(AlumnoAnemia $caso)
+    {
+        $controles = $caso->controlesRacion()->orderByDesc('fecha')->limit(90)->get();
+
+        return view('anemia.historial-racion', compact('caso', 'controles'));
     }
 
     public function buscarAlumno(Request $request)

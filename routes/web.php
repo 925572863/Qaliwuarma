@@ -263,5 +263,7 @@ Route::middleware(['auth', 'throttle:120,1'])->group(function () {
         Route::post('/recomendaciones',     [AnemiaController::class, 'storeRecomendacion'])->name('recomendaciones.store');
         Route::delete('/recomendaciones/{recomendacion}', [AnemiaController::class, 'destroyRecomendacion'])->name('recomendaciones.destroy');
         Route::get('/resultados',           [AnemiaController::class, 'resultados'])->name('resultados');
+        Route::post('/{caso}/racion',       [AnemiaController::class, 'marcarRacion'])->name('racion.marcar');
+        Route::get('/{caso}/racion',        [AnemiaController::class, 'historialRacion'])->name('racion.historial');
     });
 });

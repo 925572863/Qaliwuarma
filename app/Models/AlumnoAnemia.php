@@ -22,4 +22,9 @@ class AlumnoAnemia extends Model
     {
         return $this->belongsTo(Alumno::class);
     }
+
+    public function controlesRacion()
+    {
+        return $this->hasMany(ControlRacionAnemia::class);
+    }
 }

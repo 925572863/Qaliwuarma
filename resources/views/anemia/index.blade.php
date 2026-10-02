@@ -56,6 +56,8 @@
                     <th class="px-4 py-3 text-left">Nivel / Sección</th>
                     <th class="px-4 py-3 text-left">Fecha tamizaje</th>
                     <th class="px-4 py-3 text-left">Establecimiento de salud</th>
+                    <th class="px-4 py-3 text-center">Ración de hoy</th>
+                    <th class="px-4 py-3 text-center">Este mes</th>
                     <th class="px-4 py-3 text-left">Enlace para padres</th>
                     <th class="px-4 py-3 text-right">Acción</th>
                 </tr>
@@ -69,6 +71,38 @@
                     <td class="px-4 py-3 text-gray-600">{{ $caso->alumno->nivel_label }} · {{ $caso->alumno->carrera }}</td>
                     <td class="px-4 py-3 text-gray-600">{{ \Carbon\Carbon::parse($caso->fecha_tamizaje)->format('d/m/Y') }}</td>
                     <td class="px-4 py-3 text-gray-600">{{ $caso->establecimiento_salud ?? '—' }}</td>
+                    <td class="px-4 py-3 text-center">
+                        @if($caso->recibio_hoy === true)
+                            <form method="POST" action="{{ route('anemia.racion.marcar', $caso) }}" class="inline">
+                                @csrf
+                                <input type="hidden" name="recibio_racion" value="0">
+                                <button type="submit" class="inline-flex items-center gap-1 bg-green-50 text-green-700 border border-green-200 text-xs font-medium px-2.5 py-1 rounded-full hover:bg-green-100">
+                                    ✓ Recibió
+                                </button>
+                            </form>
+                        @elseif($caso->recibio_hoy === false)
+                            <form method="POST" action="{{ route('anemia.racion.marcar', $caso) }}" class="inline">
+                                @csrf
+                                <input type="hidden" name="recibio_racion" value="1">
+                                <button type="submit" class="inline-flex items-center gap-1 bg-red-50 text-red-700 border border-red-200 text-xs font-medium px-2.5 py-1 rounded-full hover:bg-red-100">
+                                    ✗ No recibió
+                                </button>
+                            </form>
+                        @else
+                            <form method="POST" action="{{ route('anemia.racion.marcar', $caso) }}" class="inline">
+                                @csrf
+                                <input type="hidden" name="recibio_racion" value="1">
+                                <button type="submit" class="inline-flex items-center gap-1 bg-gray-50 text-gray-500 border border-gray-200 text-xs font-medium px-2.5 py-1 rounded-full hover:bg-gray-100">
+                                    Marcar recibido
+                                </button>
+                            </form>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <a href="{{ route('anemia.racion.historial', $caso) }}" class="text-xs text-gray-600 hover:text-blue-600 underline decoration-dotted">
+                            {{ $caso->dias_recibidos_mes }}/{{ $caso->dias_marcados_mes }} días
+                        </a>
+                    </td>
                     <td class="px-4 py-3">
                         @php $link = route('orientacion.show', $caso->alumno->matricula); @endphp
                         <input type="text" readonly value="{{ $link }}" onclick="this.select()"
@@ -83,7 +117,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="6" class="px-4 py-6 text-center text-gray-400">Aún no se ha registrado ningún estudiante.</td></tr>
+                <tr><td colspan="8" class="px-4 py-6 text-center text-gray-400">Aún no se ha registrado ningún estudiante.</td></tr>
                 @endforelse
             </tbody>
         </table>
