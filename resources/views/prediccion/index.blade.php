@@ -190,13 +190,41 @@
                 <input type="hidden" name="nivel" value="{{ $nivel }}">
                 <div>
                     <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                        Receta oficial Qali Warma (menú escolar)
+                    </label>
+                    <select id="selectMenuOficial" onchange="rellenarRecetaOficial()"
+                            class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 mb-3">
+                        <option value="">-- Elegir combinación del día (autocompleta con gramos reales) --</option>
+                        @foreach($menuOficial as $dia => $combos)
+                            @foreach($combos as $i => $combo)
+                                <option value="dia{{ $dia }}_{{ $i }}">Día {{ $dia }} — {{ $combo['nombre'] }}</option>
+                            @endforeach
+                        @endforeach
+                    </select>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                         Escribe la receta (ingrediente y gramos por ración)
                     </label>
-                    <textarea name="receta_texto" rows="3"
+                    <textarea name="receta_texto" id="textareaReceta" rows="3"
                               class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
                               placeholder="Ej: arroz 130g, aceite 6g, conserva de pescado 85g, frijol 40g...">{{ session('receta_ia_' . $nivel) }}</textarea>
-                    <p class="text-xs text-gray-400 mt-1">Puedes escribirlo como quieras — la IA lo interpreta automáticamente</p>
+                    <p class="text-xs text-gray-400 mt-1">Elige una combinación oficial arriba para usar los gramos reales de Qali Warma, o escribe tu propia receta y la IA la interpreta</p>
                 </div>
+                <script>
+                    const menuOficialData = @json($menuOficial);
+                    const nivelActual = @json($nivel);
+                    function rellenarRecetaOficial() {
+                        const val = document.getElementById('selectMenuOficial').value;
+                        if (!val) return;
+                        const [diaPart, idx] = val.split('_');
+                        const dia = diaPart.replace('dia', '');
+                        const combo = menuOficialData[dia][idx];
+                        const partes = Object.entries(combo.ingredientes).map(([nombre, g]) => {
+                            const gramos = g[nivelActual] ?? g['inicial'];
+                            return `${nombre} ${gramos}g`;
+                        });
+                        document.getElementById('textareaReceta').value = partes.join(', ');
+                    }
+                </script>
                 <div class="flex gap-3 mt-3">
                     <button type="submit"
                             class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors">
@@ -500,7 +528,7 @@
     @endif
 
     {{-- Ingredientes necesarios según raciones predichas --}}
-    @if($nivel === 'inicial' && count($ingredientes ?? []) > 0)
+    @if(count($ingredientes ?? []) > 0)
     @php $tieneCalorias = isset($ingredientes[0]['items'][0]['calorias_total']) && $ingredientes[0]['items'][0]['calorias_total'] !== null; @endphp
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 bg-purple-50 flex items-center justify-between">
@@ -557,6 +585,11 @@
                                 @endif
                             @else
                                 <span class="text-[9px] text-gray-300 block mt-0.5">sin kcal</span>
+                            @endif
+                            @if(!empty($item['medida_casera']))
+                                <span class="text-[9px] text-amber-700 font-semibold block mt-0.5">
+                                    🥄 {{ $item['medida_casera'] }} <span class="text-gray-400 font-normal">(por ración)</span>
+                                </span>
                             @endif
                         </td>
                         @endforeach

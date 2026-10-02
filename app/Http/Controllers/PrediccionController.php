@@ -159,10 +159,11 @@ class PrediccionController extends Controller
         // Análisis IA — cargar receta de sesión antes de calcular ingredientes
         $recetaIA = session("receta_ia_{$nivel}", '');
 
-        // Ingredientes necesarios según predicción (solo para inicial)
+        // Ingredientes necesarios según predicción
+        $dosificacionArroz = config('menu_oficial_qw.dosificacion_arroz_fortificado', []);
         $ingredientes = [];
-        if ($nivel === 'inicial' && count($predicciones) > 0) {
-            $nutricion = RecetaNutricional::all();
+        if (count($predicciones) > 0) {
+            $nutricion = $nivel === 'inicial' ? RecetaNutricional::all() : collect();
 
             if ($nutricion->isNotEmpty()) {
                 // Fuente 1: RecetaNutricional (análisis PECOSA con calorías reales)
@@ -241,6 +242,14 @@ class PrediccionController extends Controller
                             $gramosTotal = round($gramosPorRacion * $raciones);
                             $kgTotal     = round($gramosTotal / 1000, 3);
 
+                            $medidaCasera = null;
+                            if (str_contains(mb_strtolower($nombre), 'arroz fortificado') && !empty($dosificacionArroz)) {
+                                $masCercano = collect($dosificacionArroz)->keys()
+                                    ->sortBy(fn($g) => abs($g - $gramosPorRacion))
+                                    ->first();
+                                $medidaCasera = $dosificacionArroz[$masCercano] ?? null;
+                            }
+
                             $items[] = [
                                 'producto'       => $nombre,
                                 'gramos_racion'  => $gramosPorRacion,
@@ -249,6 +258,7 @@ class PrediccionController extends Controller
                                 'calorias_racion'=> null,
                                 'calorias_total' => null,
                                 'proteinas_total'=> null,
+                                'medida_casera'  => $medidaCasera,
                                 'fuente'         => 'texto',
                             ];
                         }
@@ -389,10 +399,12 @@ PROMPT;
             } // cierra else
         }
 
+        $menuOficial = config('menu_oficial_qw.dias', []);
+
         return view('prediccion.index', compact(
             'historico', 'predicciones', 'metricas', 'nivel', 'registros', 'resumenMes', 'm', 'b',
             'ingredientes', 'aulas', 'porFecha', 'listaAlumnos', 'fechasConAulas', 'fechasOrdenadas', 'analisisIA',
-            'usandoModeloIA', 'mesRef'
+            'usandoModeloIA', 'mesRef', 'menuOficial'
         ));
     }
 
