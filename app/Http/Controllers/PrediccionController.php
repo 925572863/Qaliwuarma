@@ -704,8 +704,10 @@ PROMPT;
             }
 
             // Buscar en PECOSA por descripción (LIKE, case insensitive, primera palabra del ingrediente)
+            // Usa el modelo de Pecosa correspondiente al nivel elegido (Inicial o Primaria).
             $palabraClave = explode(' ', $nombre)[0];
-            $pecosa = \App\Models\PecosaInicial::whereRaw('LOWER(descripcion) LIKE ?', ['%' . strtolower($palabraClave) . '%'])
+            $pecosaModel = $nivel === 'primaria' ? \App\Models\PecosaPrimaria::class : \App\Models\PecosaInicial::class;
+            $pecosa = $pecosaModel::whereRaw('LOWER(descripcion) LIKE ?', ['%' . strtolower($palabraClave) . '%'])
                 ->first();
 
             if ($pecosa) {
@@ -714,7 +716,8 @@ PROMPT;
                 $pecosa->update(['stock_actual' => $nuevo]);
 
                 \App\Models\StockHistorial::create([
-                    'pecosa_inicial_id'    => $pecosa->id,
+                    'pecosa_inicial_id'    => $nivel === 'primaria' ? null : $pecosa->id,
+                    'pecosa_primaria_id'   => $nivel === 'primaria' ? $pecosa->id : null,
                     'descripcion_producto' => $pecosa->descripcion,
                     'nivel'                => $nivel,
                     'receta'               => $guardado->receta ?? null,
