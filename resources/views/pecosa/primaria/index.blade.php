@@ -221,6 +221,24 @@
             Poner fecha
         </button>
     </form>
+
+    <form method="POST" action="{{ route('pecosa.primaria.destroy-pecosa') }}"
+          onsubmit="return confirm('¿Eliminar TODOS los productos de esa Pecosa? Esta accion no se puede deshacer.')"
+          class="flex flex-wrap items-center gap-2 mt-2 pt-2">
+        @csrf
+        @method('DELETE')
+        <span class="text-xs text-gray-500 font-medium">Eliminar Pecosa:</span>
+        <select name="nombre_pecosa" required
+                class="border border-gray-300 rounded-lg text-xs px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">-- elegir --</option>
+            @foreach($pecosasSubidas as $nombrePecosa)
+                <option value="{{ $nombrePecosa }}">{{ $nombrePecosa }}</option>
+            @endforeach
+        </select>
+        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
+            Eliminar
+        </button>
+    </form>
     @endif
 </div>
 

@@ -196,6 +196,7 @@ Route::middleware(['auth', 'throttle:120,1'])->group(function () {
         Route::get('/{primarium}/editar',  [PecosaPrimariaController::class, 'edit'])->name('edit');
         Route::put('/{primarium}',         [PecosaPrimariaController::class, 'update'])->name('update');
         Route::delete('/eliminar-todo',    [PecosaPrimariaController::class, 'destroyAll'])->name('destroy-all');
+        Route::delete('/eliminar-pecosa',  [PecosaPrimariaController::class, 'destroyPecosa'])->name('destroy-pecosa');
         Route::delete('/{primarium}',      [PecosaPrimariaController::class, 'destroy'])->name('destroy');
     });
 

@@ -179,6 +179,19 @@ class PecosaPrimariaController extends Controller
             ->with('success', "Se eliminaron los {$total} productos de Pecosa Primaria.");
     }
 
+    // Elimina todas las filas de una Pecosa (ej. si se subio por error).
+    public function destroyPecosa(Request $request)
+    {
+        $data = $request->validate([
+            'nombre_pecosa' => 'required|string|max:255',
+        ]);
+
+        $total = PecosaPrimaria::where('nombre_pecosa', $data['nombre_pecosa'])->delete();
+
+        return redirect()->route('pecosa.primaria.index')
+            ->with('success', "Se eliminaron los {$total} productos de la Pecosa \"{$data['nombre_pecosa']}\".");
+    }
+
     // Renombra todas las filas de una Pecosa de una sola vez (ej. si al
     // importar quedo con el nombre del archivo en vez de la fecha real).
     public function renombrar(Request $request)
