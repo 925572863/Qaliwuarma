@@ -195,6 +195,22 @@ class PecosaPrimariaController extends Controller
             ->with('success', "Se renombraron {$actualizados} productos de \"{$data['nombre_actual']}\" a \"{$data['nombre_nuevo']}\".");
     }
 
+    // Pone la misma fecha de entrega a todos los productos de una Pecosa de
+    // una sola vez (ej. una Pecosa que se importo sin fecha exacta).
+    public function cambiarFecha(Request $request)
+    {
+        $data = $request->validate([
+            'nombre_pecosa' => 'required|string|max:150',
+            'fecha_entrega' => 'required|date',
+        ]);
+
+        $actualizados = PecosaPrimaria::where('nombre_pecosa', $data['nombre_pecosa'])
+            ->update(['fecha_entrega' => $data['fecha_entrega']]);
+
+        return redirect()->route('pecosa.primaria.index')
+            ->with('success', "Se actualizo la fecha de {$actualizados} productos de \"{$data['nombre_pecosa']}\" a {$data['fecha_entrega']}.");
+    }
+
     public function importar(Request $request)
     {
         $request->validate([

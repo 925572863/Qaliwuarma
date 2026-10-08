@@ -189,6 +189,7 @@ Route::middleware(['auth', 'throttle:120,1'])->group(function () {
         Route::post('/distribuciones/importar',                    [\App\Http\Controllers\ProrrateoController::class, 'importarExcel'])->name('distribuciones.importar')->middleware('throttle:10,1');
         Route::post('/importar',           [PecosaPrimariaController::class, 'importar'])->name('importar')->middleware('throttle:10,1');
         Route::post('/renombrar',          [PecosaPrimariaController::class, 'renombrar'])->name('renombrar');
+        Route::post('/cambiar-fecha',      [PecosaPrimariaController::class, 'cambiarFecha'])->name('cambiar-fecha');
         Route::post('/importar-foto',      [PecosaPrimariaController::class, 'importarFoto'])->name('importar-foto')->middleware('throttle:10,1');
         Route::get('/crear',               [\App\Http\Controllers\PecosaPrimariaController::class, 'create'])->name('create');
         Route::post('/',                   [PecosaPrimariaController::class, 'store'])->name('store');

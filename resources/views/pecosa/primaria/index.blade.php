@@ -201,6 +201,26 @@
             Renombrar
         </button>
     </form>
+
+    <form method="POST" action="{{ route('pecosa.primaria.cambiar-fecha') }}"
+          onsubmit="return confirm('¿Poner esa fecha a todos los productos de esa Pecosa?')"
+          class="flex flex-wrap items-center gap-2 mt-2 pt-2">
+        @csrf
+        <span class="text-xs text-gray-500 font-medium">Poner fecha a Pecosa:</span>
+        <select name="nombre_pecosa" required
+                class="border border-gray-300 rounded-lg text-xs px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">-- elegir --</option>
+            @foreach($pecosasSubidas as $nombrePecosa)
+                <option value="{{ $nombrePecosa }}">{{ $nombrePecosa }}</option>
+            @endforeach
+        </select>
+        <span class="text-xs text-gray-400">→</span>
+        <input type="date" name="fecha_entrega" required
+               class="border border-gray-300 rounded-lg text-xs px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
+            Poner fecha
+        </button>
+    </form>
     @endif
 </div>
 
