@@ -182,9 +182,11 @@
     </form>
 
     @if($pecosasSubidas->isNotEmpty())
+    <details class="mt-3 pt-3 border-t border-gray-100">
+        <summary class="text-xs text-gray-400 hover:text-gray-600 cursor-pointer select-none">Opciones avanzadas de Pecosa</summary>
     <form method="POST" action="{{ route('pecosa.primaria.renombrar') }}"
           onsubmit="return confirm('¿Renombrar todos los productos de esa Pecosa?')"
-          class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+          class="flex flex-wrap items-center gap-2 mt-2">
         @csrf
         <span class="text-xs text-gray-500 font-medium">Renombrar Pecosa:</span>
         <select name="nombre_actual" required
@@ -239,6 +241,7 @@
             Eliminar
         </button>
     </form>
+    </details>
     @endif
 </div>
 
