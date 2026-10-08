@@ -179,6 +179,22 @@ class PecosaPrimariaController extends Controller
             ->with('success', "Se eliminaron los {$total} productos de Pecosa Primaria.");
     }
 
+    // Renombra todas las filas de una Pecosa de una sola vez (ej. si al
+    // importar quedo con el nombre del archivo en vez de la fecha real).
+    public function renombrar(Request $request)
+    {
+        $data = $request->validate([
+            'nombre_actual' => 'required|string|max:150',
+            'nombre_nuevo'  => 'required|string|max:150',
+        ]);
+
+        $actualizados = PecosaPrimaria::where('nombre_pecosa', $data['nombre_actual'])
+            ->update(['nombre_pecosa' => $data['nombre_nuevo']]);
+
+        return redirect()->route('pecosa.primaria.index')
+            ->with('success', "Se renombraron {$actualizados} productos de \"{$data['nombre_actual']}\" a \"{$data['nombre_nuevo']}\".");
+    }
+
     public function importar(Request $request)
     {
         $request->validate([

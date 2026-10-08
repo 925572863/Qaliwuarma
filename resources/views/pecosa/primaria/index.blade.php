@@ -180,6 +180,28 @@
                class="text-sm text-gray-500 hover:text-gray-700 font-medium py-2.5 px-3">Limpiar</a>
         @endif
     </form>
+
+    @if($pecosasSubidas->isNotEmpty())
+    <form method="POST" action="{{ route('pecosa.primaria.renombrar') }}"
+          onsubmit="return confirm('¿Renombrar todos los productos de esa Pecosa?')"
+          class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+        @csrf
+        <span class="text-xs text-gray-500 font-medium">Renombrar Pecosa:</span>
+        <select name="nombre_actual" required
+                class="border border-gray-300 rounded-lg text-xs px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">-- elegir --</option>
+            @foreach($pecosasSubidas as $nombrePecosa)
+                <option value="{{ $nombrePecosa }}">{{ $nombrePecosa }}</option>
+            @endforeach
+        </select>
+        <span class="text-xs text-gray-400">→</span>
+        <input type="text" name="nombre_nuevo" required placeholder="Ej: 20/08/2026"
+               class="border border-gray-300 rounded-lg text-xs px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-32">
+        <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
+            Renombrar
+        </button>
+    </form>
+    @endif
 </div>
 
 {{-- Tabla principal --}}
