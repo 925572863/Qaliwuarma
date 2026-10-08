@@ -162,7 +162,7 @@
             <select name="pecosa" onchange="this.form.submit()"
                     class="border border-gray-300 rounded-lg text-sm px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">Todas las Pecosas</option>
-                @foreach($pecosasSubidas->groupBy(fn($n) => \Illuminate\Support\Str::of($n)->substr(-4)) as $anio => $pecosasDelAnio)
+                @foreach($pecosasSubidas->groupBy(fn($n) => $pecosasOrdenadas[$n] ? \Carbon\Carbon::parse($pecosasOrdenadas[$n])->year : 'Sin fecha') as $anio => $pecosasDelAnio)
                     <optgroup label="{{ $anio }}">
                         @foreach($pecosasDelAnio as $nombrePecosa)
                             <option value="{{ $nombrePecosa }}" {{ request('pecosa') === $nombrePecosa ? 'selected' : '' }}>{{ $nombrePecosa }}</option>

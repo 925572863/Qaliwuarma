@@ -66,7 +66,7 @@ class PecosaInicialController extends Controller
 
         return view('pecosa.inicial.index', compact(
             'items', 'totalProductos', 'totalProductosUnicos', 'totalUnidades',
-            'pecosasSubidas', 'pecosaMasReciente', 'viendoSoloReciente'
+            'pecosasSubidas', 'pecosaMasReciente', 'viendoSoloReciente', 'pecosasOrdenadas'
         ));
     }
 
