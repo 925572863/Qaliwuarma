@@ -41,7 +41,7 @@
     </div>
 
     {{-- Resumen general --}}
-    <div class="flex gap-6 mb-6 justify-center">
+    <div class="flex flex-wrap gap-4 mb-6 justify-center">
         <div class="text-center border border-red-300 bg-red-50 rounded-lg px-6 py-3">
             <p class="text-2xl font-black text-red-700">{{ $vencidos->count() }}</p>
             <p class="text-[10px] uppercase font-bold text-red-500 tracking-wide">Vencidos</p>
@@ -62,6 +62,7 @@
         <div class="bg-red-700 text-white text-xs font-bold uppercase px-3 py-1.5 tracking-wide rounded-t">
             ● Stock Vigente ({{ $vencidos->count() }})
         </div>
+        <div class="overflow-x-auto">
         <table class="w-full border-collapse border border-red-300 text-xs">
             <thead>
                 <tr class="bg-red-100 text-gray-700 text-[10px] uppercase">
@@ -92,6 +93,7 @@
                 @endforeach
             </tbody>
         </table>
+        </div>
     </div>
     @endif
 
@@ -101,6 +103,7 @@
         <div class="bg-yellow-500 text-white text-xs font-bold uppercase px-3 py-1.5 tracking-wide rounded-t">
             ● Por Vencer en 30 días ({{ $porVencer->count() }})
         </div>
+        <div class="overflow-x-auto">
         <table class="w-full border-collapse border border-yellow-300 text-xs">
             <thead>
                 <tr class="bg-yellow-100 text-gray-700 text-[10px] uppercase">
@@ -131,6 +134,7 @@
                 @endforeach
             </tbody>
         </table>
+        </div>
     </div>
     @endif
 
@@ -140,6 +144,7 @@
         <div class="bg-green-700 text-white text-xs font-bold uppercase px-3 py-1.5 tracking-wide rounded-t">
             ● Vigentes ({{ $vigentes->count() }})
         </div>
+        <div class="overflow-x-auto">
         <table class="w-full border-collapse border border-green-300 text-xs">
             <thead>
                 <tr class="bg-green-100 text-gray-700 text-[10px] uppercase">
@@ -170,6 +175,7 @@
                 @endforeach
             </tbody>
         </table>
+        </div>
     </div>
     @endif
 

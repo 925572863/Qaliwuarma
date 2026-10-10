@@ -72,6 +72,7 @@
         <span class="text-xs text-gray-400">— vencen en los próximos 30 días</span>
     </div>
     <div class="bg-white rounded-xl border border-yellow-200 overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
         <table class="w-full text-sm">
             <thead>
                 <tr class="bg-yellow-500 text-white text-[10px] uppercase tracking-wide">
@@ -112,6 +113,7 @@
                 @endforeach
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 @endif
@@ -127,6 +129,7 @@
         <span class="text-xs text-gray-400">— vencen en más de 30 días</span>
     </div>
     <div class="bg-white rounded-xl border border-green-200 overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
         <table class="w-full text-sm">
             <thead>
                 <tr class="bg-green-600 text-white text-[10px] uppercase tracking-wide">
@@ -167,6 +170,7 @@
                 @endforeach
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 @endif
