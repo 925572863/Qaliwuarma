@@ -187,6 +187,13 @@
                class="text-sm text-gray-500 hover:text-gray-700 font-medium py-2.5 px-3">Limpiar</a>
         @endif
     </form>
+
+    @include('pecosa._opciones-avanzadas', [
+        'pecosasSubidas'    => $pecosasSubidas,
+        'rutaRenombrar'     => route('pecosa.inicial.renombrar'),
+        'rutaCambiarFecha'  => route('pecosa.inicial.cambiar-fecha'),
+        'rutaDestroyPecosa' => route('pecosa.inicial.destroy-pecosa'),
+    ])
 </div>
 
 {{-- Tabla --}}

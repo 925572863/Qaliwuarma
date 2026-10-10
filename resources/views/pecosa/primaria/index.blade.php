@@ -181,68 +181,12 @@
         @endif
     </form>
 
-    @if($pecosasSubidas->isNotEmpty())
-    <details class="mt-3 pt-3 border-t border-gray-100">
-        <summary class="text-xs text-gray-400 hover:text-gray-600 cursor-pointer select-none">Opciones avanzadas de Pecosa</summary>
-    <form method="POST" action="{{ route('pecosa.primaria.renombrar') }}"
-          onsubmit="return confirm('¿Renombrar todos los productos de esa Pecosa?')"
-          class="flex flex-wrap items-center gap-2 mt-2">
-        @csrf
-        <span class="text-xs text-gray-500 font-medium">Renombrar Pecosa:</span>
-        <select name="nombre_actual" required
-                class="border border-gray-300 rounded-lg text-xs px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">-- elegir --</option>
-            @foreach($pecosasSubidas as $nombrePecosa)
-                <option value="{{ $nombrePecosa }}">{{ $nombrePecosa }}</option>
-            @endforeach
-        </select>
-        <span class="text-xs text-gray-400">→</span>
-        <input type="text" name="nombre_nuevo" required placeholder="Ej: 20/08/2026"
-               class="border border-gray-300 rounded-lg text-xs px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 w-32">
-        <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
-            Renombrar
-        </button>
-    </form>
-
-    <form method="POST" action="{{ route('pecosa.primaria.cambiar-fecha') }}"
-          onsubmit="return confirm('¿Poner esa fecha a todos los productos de esa Pecosa?')"
-          class="flex flex-wrap items-center gap-2 mt-2 pt-2">
-        @csrf
-        <span class="text-xs text-gray-500 font-medium">Poner fecha a Pecosa:</span>
-        <select name="nombre_pecosa" required
-                class="border border-gray-300 rounded-lg text-xs px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">-- elegir --</option>
-            @foreach($pecosasSubidas as $nombrePecosa)
-                <option value="{{ $nombrePecosa }}">{{ $nombrePecosa }}</option>
-            @endforeach
-        </select>
-        <span class="text-xs text-gray-400">→</span>
-        <input type="date" name="fecha_entrega" required
-               class="border border-gray-300 rounded-lg text-xs px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
-            Poner fecha
-        </button>
-    </form>
-
-    <form method="POST" action="{{ route('pecosa.primaria.destroy-pecosa') }}"
-          onsubmit="return confirm('¿Eliminar TODOS los productos de esa Pecosa? Esta accion no se puede deshacer.')"
-          class="flex flex-wrap items-center gap-2 mt-2 pt-2">
-        @csrf
-        @method('DELETE')
-        <span class="text-xs text-gray-500 font-medium">Eliminar Pecosa:</span>
-        <select name="nombre_pecosa" required
-                class="border border-gray-300 rounded-lg text-xs px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">-- elegir --</option>
-            @foreach($pecosasSubidas as $nombrePecosa)
-                <option value="{{ $nombrePecosa }}">{{ $nombrePecosa }}</option>
-            @endforeach
-        </select>
-        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
-            Eliminar
-        </button>
-    </form>
-    </details>
-    @endif
+    @include('pecosa._opciones-avanzadas', [
+        'pecosasSubidas'    => $pecosasSubidas,
+        'rutaRenombrar'     => route('pecosa.primaria.renombrar'),
+        'rutaCambiarFecha'  => route('pecosa.primaria.cambiar-fecha'),
+        'rutaDestroyPecosa' => route('pecosa.primaria.destroy-pecosa'),
+    ])
 </div>
 
 {{-- Tabla principal --}}

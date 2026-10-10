@@ -122,6 +122,9 @@ Route::middleware(['auth', 'throttle:120,1'])->group(function () {
         Route::get('/{inicial}/editar',   [PecosaInicialController::class, 'edit'])->name('edit');
         Route::put('/{inicial}',          [PecosaInicialController::class, 'update'])->name('update');
         Route::delete('/eliminar-todo',   [PecosaInicialController::class, 'destroyAll'])->name('destroy-all');
+        Route::delete('/eliminar-pecosa', [PecosaInicialController::class, 'destroyPecosa'])->name('destroy-pecosa');
+        Route::post('/renombrar',         [PecosaInicialController::class, 'renombrar'])->name('renombrar');
+        Route::post('/cambiar-fecha',     [PecosaInicialController::class, 'cambiarFecha'])->name('cambiar-fecha');
         Route::delete('/{inicial}',       [PecosaInicialController::class, 'destroy'])->name('destroy');
 
         // Distribución / Prorrateo Inicial

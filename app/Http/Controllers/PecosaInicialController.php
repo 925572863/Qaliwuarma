@@ -180,6 +180,49 @@ class PecosaInicialController extends Controller
             ->with('success', "Se eliminaron los {$total} productos de Pecosa Inicial.");
     }
 
+    // Renombra todas las filas de una Pecosa de una sola vez.
+    public function renombrar(Request $request)
+    {
+        $data = $request->validate([
+            'nombre_actual' => 'required|string|max:255',
+            'nombre_nuevo'  => 'required|string|max:255',
+        ]);
+
+        $total = PecosaInicial::where('nombre_pecosa', $data['nombre_actual'])
+            ->update(['nombre_pecosa' => $data['nombre_nuevo']]);
+
+        return redirect()->route('pecosa.inicial.index')
+            ->with('success', "Se renombraron {$total} productos.");
+    }
+
+    // Pone una fecha a todas las filas de una Pecosa de una sola vez.
+    public function cambiarFecha(Request $request)
+    {
+        $data = $request->validate([
+            'nombre_pecosa' => 'required|string|max:255',
+            'fecha_entrega' => 'required|date',
+        ]);
+
+        $total = PecosaInicial::where('nombre_pecosa', $data['nombre_pecosa'])
+            ->update(['fecha_entrega' => $data['fecha_entrega']]);
+
+        return redirect()->route('pecosa.inicial.index')
+            ->with('success', "Se actualizo la fecha de {$total} productos.");
+    }
+
+    // Elimina todas las filas de una Pecosa (ej. si se subio por error).
+    public function destroyPecosa(Request $request)
+    {
+        $data = $request->validate([
+            'nombre_pecosa' => 'required|string|max:255',
+        ]);
+
+        $total = PecosaInicial::where('nombre_pecosa', $data['nombre_pecosa'])->delete();
+
+        return redirect()->route('pecosa.inicial.index')
+            ->with('success', "Se eliminaron los {$total} productos de la Pecosa \"{$data['nombre_pecosa']}\".");
+    }
+
     public function nutricion(Request $request)
     {
         $ids    = $request->input('productos', []);
