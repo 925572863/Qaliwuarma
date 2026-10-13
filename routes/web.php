@@ -85,6 +85,19 @@ Route::get('/exportar-datos-migracion', function () {
     return response()->json($data);
 })->middleware('auth');
 
+// Exportar solo la asistencia de un año como archivo descargable (para analisis externo)
+Route::get('/exportar-asistencia/{anio}', function ($anio) {
+    $registros = \App\Models\RegistroAsistencia::whereYear('fecha', $anio)
+        ->orderBy('fecha')
+        ->get()
+        ->toArray();
+    $json = json_encode($registros, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    return response($json, 200, [
+        'Content-Type'        => 'application/json',
+        'Content-Disposition' => "attachment; filename=\"asistencia_{$anio}.json\"",
+    ]);
+})->middleware('auth');
+
 // Auth
 // Módulo de orientación a familias de estudiantes con anemia: acceso público
 // vía el enlace con la matrícula del estudiante, sin credenciales del sistema
