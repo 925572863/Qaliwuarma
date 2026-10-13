@@ -30,3 +30,7 @@ Thumbs.db
 # Base de datos local (contiene datos de prueba/reales, no debe versionarse)
 database/database.sqlite
 database/*.sqlite
+
+# Tesis y archivos locales (no deben subirse)
+*.docx
+.claude/settings.json
