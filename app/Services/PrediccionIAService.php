@@ -10,25 +10,24 @@ use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
 
 /**
- * Modelo de aprendizaje automático (Random Forest) para predecir la demanda
- * diaria de raciones, tal como se sustenta en la tesis "Modelo de aprendizaje
- * automático para optimizar la gestión del servicio alimentario escolar en
- * una institución educativa de Piura, 2026".
+ * Modelo de aprendizaje automático (Random Forest) evaluado en la tesis
+ * "Modelo de aprendizaje automático para optimizar la gestión del servicio
+ * alimentario escolar en una institución educativa de Piura, 2026".
  *
- * El entrenamiento y la predicción se delegan a un script Python
- * (scikit-learn RandomForestRegressor, validación cruzada k-fold, métricas
- * MAE/RMSE/MAPE/R²) invocado como proceso externo. Este servicio solo se
- * encarga de exportar el histórico, invocar el script y decodificar su
- * salida JSON.
+ * El entrenamiento y la predicción se delegan a python/prediccion_raciones.py
+ * (un único Random Forest agrupado que predice la asistencia de cada sección
+ * con los 13 predictores de la tesis, evaluación con origen móvil y raciones
+ * = predicción del nivel + cuantil 95 de sus propios errores). Este servicio
+ * solo exporta los registros por sección y día, invoca el script y decodifica
+ * su salida JSON.
  *
- * Además del modelo agregado por nivel (inicial/primaria), admite entrenar
- * modelos independientes por grado (ej. "3 Años", "4 Años", "5 Años" dentro
- * de inicial), pasando el parámetro $grado. Con $grado = null se usa el
- * histórico de todo el nivel, tal como antes.
+ * Con $grado = null el modelo se entrena con todas las secciones de ambos
+ * niveles, como en la tesis, y se informa el nivel pedido. Con $grado se
+ * entrena solo con las secciones de ese grado.
  */
 class PrediccionIAService
 {
-    private const MIN_MUESTRAS = 10;
+    private const MIN_DIAS = 10;
 
     /**
      * Convierte un grado en un slug ASCII seguro, tanto para nombres de
@@ -150,35 +149,38 @@ class PrediccionIAService
     }
 
     /**
-     * Construye el histórico diario (fecha + raciones) agrupado por día,
-     * incluyendo las variables de contexto del marco teórico (clima, eventos
-     * especiales del calendario) cuando están disponibles. Si $grado se
-     * indica, filtra el histórico a solo ese grado (todas sus secciones).
+     * Registros de asistencia por sección y día (ficha de registro de la
+     * tesis): matriculados y asistentes. Sin $grado incluye ambos niveles,
+     * porque el modelo de la tesis es uno solo para todas las secciones.
      */
-    private function historicoDiario(string $nivel, ?string $grado = null): array
+    private function registrosPorSeccion(string $nivel, ?string $grado = null): array
+    {
+        return RegistroAsistencia::query()
+            ->when($grado !== null, fn ($q) => $q->where('nivel', $nivel)->where('grado', $grado))
+            ->orderBy('fecha')
+            ->get(['fecha', 'nivel', 'grado', 'seccion', 'total_alumnos', 'presentes'])
+            ->map(fn ($r) => [
+                'fecha'        => $r->fecha->toDateString(),
+                'nivel'        => $r->nivel,
+                'grado'        => $r->grado,
+                'seccion'      => $r->seccion,
+                'matriculados' => (int) $r->total_alumnos,
+                'asistentes'   => (int) $r->presentes,
+            ])
+            ->all();
+    }
+
+    private function diasConRegistro(string $nivel, ?string $grado = null): int
     {
         return RegistroAsistencia::where('nivel', $nivel)
             ->when($grado !== null, fn ($q) => $q->where('grado', $grado))
-            ->orderBy('fecha')
-            ->get()
-            ->groupBy(fn ($r) => $r->fecha->toDateString())
-            ->map(fn ($grupo, $fecha) => [
-                'fecha'    => $fecha,
-                'raciones' => (float) $grupo->sum('raciones'),
-                // Variable de contexto: lluvia registrada en alguna sección ese día
-                'clima_lluvioso' => $grupo->contains(fn ($r) => $r->condicion_climatica === 'lluvioso') ? 1 : 0,
-                // Variable de contexto: feriado próximo/actividad especial reportada ese día
-                'evento_especial' => $grupo->contains(fn ($r) => (bool) $r->evento_especial) ? 1 : 0,
-            ])
-            ->values()
-            ->sortBy('fecha')
-            ->values()
-            ->toArray();
+            ->distinct()
+            ->count('fecha');
     }
 
     private function exportarDatos(string $nivel, ?string $grado = null): string
     {
-        $historico = $this->historicoDiario($nivel, $grado);
+        $historico = $this->registrosPorSeccion($nivel, $grado);
         $ruta = self::rutaDatos($nivel, $grado);
 
         if (!is_dir(dirname($ruta))) {
@@ -193,10 +195,10 @@ class PrediccionIAService
     /**
      * Ejecuta el script Python y decodifica su salida JSON.
      */
-    private function ejecutar(array $argumentos): ?array
+    private function ejecutar(array $argumentos, int $timeout = 120): ?array
     {
         $process = new Process(array_merge([self::python(), self::rutaScript()], $argumentos));
-        $process->setTimeout(120);
+        $process->setTimeout($timeout);
         $process->run();
 
         $salida = trim($process->getOutput());
@@ -221,16 +223,14 @@ class PrediccionIAService
     }
 
     /**
-     * Entrena el modelo Random Forest para un nivel (o un grado específico
-     * dentro de ese nivel, si se indica $grado). Devuelve estadísticas
-     * (muestras, hiperparámetros y métricas MAE/RMSE/MAPE/R²) o null si
-     * faltan datos suficientes.
+     * Entrena el modelo Random Forest y lo evalúa para un nivel (o un grado
+     * específico dentro de ese nivel, si se indica $grado). Devuelve
+     * estadísticas (días, hiperparámetros y métricas MAE/RMSE/MAPE/R² del
+     * pronóstico del nivel) o null si faltan datos suficientes.
      */
     public function entrenar(string $nivel, ?string $grado = null): ?array
     {
-        $historico = $this->historicoDiario($nivel, $grado);
-
-        if (count($historico) < self::MIN_MUESTRAS) {
+        if ($this->diasConRegistro($nivel, $grado) < self::MIN_DIAS) {
             return null;
         }
 
@@ -246,7 +246,7 @@ class PrediccionIAService
             '--nivel', self::etiquetaProceso($nivel, $grado),
             '--datos', $rutaDatos,
             '--modelo', $rutaModelo,
-        ]);
+        ], 900);
 
         if (!$resultado || !($resultado['ok'] ?? false)) {
             return null;
@@ -334,7 +334,9 @@ class PrediccionIAService
         $totalRegistros = RegistroAsistencia::where('nivel', $nivel)
             ->when($grado, fn($q) => $q->where('grado', $grado))
             ->count();
-        $hash = md5($ultimoRegistro . '|' . $totalRegistros . '|' . $cantidad);
+        // La fecha del archivo del modelo invalida el caché al reentrenar.
+        $versionModelo = @filemtime(self::rutaModelo($nivel, $grado)) ?: 0;
+        $hash = md5($ultimoRegistro . '|' . $totalRegistros . '|' . $cantidad . '|' . $versionModelo);
         $claveCache = 'prediccion_ia_' . self::claveModelo($nivel, $grado) . '_' . $hash;
 
         $cacheado = Cache::get($claveCache);

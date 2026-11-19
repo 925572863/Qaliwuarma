@@ -31,7 +31,54 @@ from sklearn.model_selection import KFold
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from xgboost import XGBRegressor
 
-from prediccion_raciones import cargar_historico, construir_features, FEATURE_COLS, calcular_metricas
+from prediccion_raciones import calcular_metricas
+
+
+# Variables del historico diario agregado (fecha, raciones) que usa esta
+# comparacion. Son propias de este script y distintas de las del modelo de
+# la tesis en prediccion_raciones.py.
+FEATURE_COLS = ["dia_semana", "dia_mes", "mes", "indice", "ma3", "ma7", "clima_lluvioso", "evento_especial"]
+
+
+def cargar_historico(ruta_datos: str) -> pd.DataFrame:
+    """Carga el historico diario {fecha, raciones}."""
+    with open(ruta_datos, "r", encoding="utf-8") as f:
+        registros = json.load(f)
+
+    df = pd.DataFrame(registros)
+    if df.empty:
+        return df
+
+    df["fecha"] = pd.to_datetime(df["fecha"])
+    return df.sort_values("fecha").reset_index(drop=True)
+
+
+def construir_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+    """Variables de calendario y promedios moviles (MA3, MA7) del historico diario."""
+    df = df.copy()
+    registros_totales = len(df)
+    completos = int(df[["fecha", "raciones"]].dropna().shape[0])
+    pct_completos = round((completos / registros_totales) * 100, 2) if registros_totales else 0.0
+
+    df["dia_semana"] = df["fecha"].dt.dayofweek
+    df["dia_mes"] = df["fecha"].dt.day
+    df["mes"] = df["fecha"].dt.month
+    df["indice"] = np.arange(len(df))
+    df["ma3"] = df["raciones"].rolling(window=3, min_periods=1).mean().shift(1)
+    df["ma7"] = df["raciones"].rolling(window=7, min_periods=1).mean().shift(1)
+    df["clima_lluvioso"] = df["clima_lluvioso"].fillna(0) if "clima_lluvioso" in df.columns else 0
+    df["evento_especial"] = df["evento_especial"].fillna(0) if "evento_especial" in df.columns else 0
+
+    df_depurado = df.dropna(subset=["ma3", "ma7"]).reset_index(drop=True)
+    registros_depurados = len(df_depurado)
+    pct_depurados = round((registros_depurados / registros_totales) * 100, 2) if registros_totales else 0.0
+
+    return df_depurado, {
+        "registros_totales": registros_totales,
+        "registros_depurados": registros_depurados,
+        "pct_depurados": pct_depurados,
+        "pct_completos": pct_completos,
+    }
 
 
 def _sigmoid(x):

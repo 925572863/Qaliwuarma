@@ -894,16 +894,20 @@ PROMPT;
     {
         $nivel = in_array($request->get('nivel'), ['inicial', 'primaria']) ? $request->get('nivel') : 'inicial';
 
+        // La evaluación con origen móvil de la tesis reentrena el modelo cada
+        // semana del historial, lo que toma alrededor de un minuto.
+        set_time_limit(900);
+
         $service   = new \App\Services\PrediccionIAService();
         $resultado = $service->entrenar($nivel);
 
         if ($resultado === null) {
             return redirect()->route('prediccion.index', ['nivel' => $nivel])
-                ->with('error', 'Sin suficientes datos históricos para entrenar (mínimo 20 días registrados).');
+                ->with('error', 'Sin suficientes datos históricos para entrenar (mínimo 10 días registrados).');
         }
 
         return redirect()->route('prediccion.index', ['nivel' => $nivel])
-            ->with('success', "Modelo IA reentrenado con {$resultado['muestras']} días de histórico (error promedio: {$resultado['mae']} raciones).");
+            ->with('success', "Modelo IA reentrenado con {$resultado['muestras']} días de histórico (error promedio: {$resultado['mae']} estudiantes por día).");
     }
 
     // ── Destroy ───────────────────────────────────────────────────────────

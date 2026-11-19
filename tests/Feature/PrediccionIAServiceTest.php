@@ -99,7 +99,8 @@ class PrediccionIAServiceTest extends TestCase
         $entrenamiento = IaEntrenamiento::first();
         $this->assertSame('primaria', $entrenamiento->nivel);
         $this->assertSame(300, $entrenamiento->n_estimators);
-        $this->assertSame(8, $entrenamiento->max_depth);
+        // Profundidad sin límite, como el Random Forest de la tesis.
+        $this->assertNull($entrenamiento->max_depth);
         $this->assertIsArray($entrenamiento->folds_detalle);
         $this->assertNotEmpty($entrenamiento->folds_detalle);
         $this->assertGreaterThan(0, $entrenamiento->pct_depurados);

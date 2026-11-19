@@ -471,7 +471,7 @@
             <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Predicción Próximos Días Hábiles</h3>
             <div class="flex items-center space-x-2">
                 @if($usandoModeloIA ?? false)
-                    <span class="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">🤖 Modelo IA entrenado (Rubix ML)</span>
+                    <span class="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">🤖 Modelo IA entrenado (Random Forest)</span>
                 @else
                     <span class="text-xs text-gray-400">Basada en regresión lineal · sin fines de semana</span>
                 @endif
