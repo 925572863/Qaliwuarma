@@ -852,6 +852,9 @@ PROMPT;
                     $seccion = 'A';
                 }
 
+                // "1.° grado", "1° grado" o "1º" se guardan como "1°", el formato del sistema.
+                $grado = preg_replace('/^(\d)\s*\.?\s*[°º]\s*(grado)?$/iu', '$1°', $grado);
+
                 if (!$fecha || $presentes < 0) continue;
 
                 $registros[] = [

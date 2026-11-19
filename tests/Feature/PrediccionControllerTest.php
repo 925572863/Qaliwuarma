@@ -220,4 +220,22 @@ class PrediccionControllerTest extends TestCase
         $this->assertDatabaseCount('registros_asistencia', 2);
         $this->assertDatabaseHas('registros_asistencia', ['fecha' => '2026-03-02', 'presentes' => 18]);
     }
+
+    public function test_importar_historico_normaliza_el_nombre_del_grado(): void
+    {
+        $user = User::factory()->investigador()->create();
+
+        $csv = "fecha,grado,seccion,presentes,total_alumnos,raciones\n"
+             . "2025-07-01,1.° grado,A,18,20,18\n"
+             . "2025-07-01,2º,B,19,20,19\n";
+        $archivo = \Illuminate\Http\UploadedFile::fake()->createWithContent('historico.csv', $csv);
+
+        $this->actingAs($user)->post(route('prediccion.importar'), [
+            'archivo' => $archivo,
+            'nivel' => 'primaria',
+        ]);
+
+        $this->assertDatabaseHas('registros_asistencia', ['grado' => '1°', 'seccion' => 'A']);
+        $this->assertDatabaseHas('registros_asistencia', ['grado' => '2°', 'seccion' => 'B']);
+    }
 }
