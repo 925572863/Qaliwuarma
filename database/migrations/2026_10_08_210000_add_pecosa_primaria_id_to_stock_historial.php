@@ -14,7 +14,14 @@ return new class extends Migration
                 ->constrained('pecosa_primaria')->onDelete('cascade');
         });
 
-        DB::statement('ALTER TABLE stock_historial ALTER COLUMN pecosa_inicial_id DROP NOT NULL');
+        // SQLite (local y tests) no admite ALTER COLUMN: Laravel reconstruye la tabla.
+        if (DB::getDriverName() === 'sqlite') {
+            Schema::table('stock_historial', function (Blueprint $table) {
+                $table->unsignedBigInteger('pecosa_inicial_id')->nullable()->change();
+            });
+        } else {
+            DB::statement('ALTER TABLE stock_historial ALTER COLUMN pecosa_inicial_id DROP NOT NULL');
+        }
     }
 
     public function down(): void
@@ -23,6 +30,12 @@ return new class extends Migration
             $table->dropConstrainedForeignId('pecosa_primaria_id');
         });
 
-        DB::statement('ALTER TABLE stock_historial ALTER COLUMN pecosa_inicial_id SET NOT NULL');
+        if (DB::getDriverName() === 'sqlite') {
+            Schema::table('stock_historial', function (Blueprint $table) {
+                $table->unsignedBigInteger('pecosa_inicial_id')->nullable(false)->change();
+            });
+        } else {
+            DB::statement('ALTER TABLE stock_historial ALTER COLUMN pecosa_inicial_id SET NOT NULL');
+        }
     }
 };

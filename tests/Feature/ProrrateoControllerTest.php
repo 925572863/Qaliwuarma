@@ -64,7 +64,7 @@ class ProrrateoControllerTest extends TestCase
         $this->assertSame(0, $filaB['items'][0]);
     }
 
-    public function test_guardar_crea_version_registros_y_descuenta_stock(): void
+    public function test_guardar_crea_version_y_registros_sin_tocar_el_stock(): void
     {
         $user = User::factory()->create();
         $pecosaId = $this->producto(['cant' => 100]);
@@ -78,7 +78,9 @@ class ProrrateoControllerTest extends TestCase
             ],
         ]);
 
-        $response->assertRedirect(route('pecosa.primaria.distribuciones'));
+        // Tras guardar se abre la distribución recién creada.
+        $version = DB::table('prorrateo_versiones')->value('id');
+        $response->assertRedirect(route('pecosa.primaria.distribuciones.ver', $version));
 
         $this->assertDatabaseHas('prorrateo_versiones', [
             'nombre' => 'Distribución de prueba',
@@ -86,7 +88,8 @@ class ProrrateoControllerTest extends TestCase
             'total_unidades' => 30,
         ]);
         $this->assertDatabaseCount('prorrateo_primaria', 2);
-        $this->assertDatabaseHas('pecosa_primaria', ['id' => $pecosaId, 'cant' => 70]); // 100 - 30
+        // El stock de la Pecosa es inventario recibido: guardar un reparto no lo modifica.
+        $this->assertDatabaseHas('pecosa_primaria', ['id' => $pecosaId, 'cant' => 100]);
     }
 
     public function test_guardar_no_permite_cantidades_negativas(): void

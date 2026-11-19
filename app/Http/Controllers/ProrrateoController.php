@@ -297,7 +297,7 @@ class ProrrateoController extends Controller
         // Va directo a la distribución recién guardada (no al listado general),
         // para no perder de vista qué Pecosa se acaba de repartir.
         return redirect()->route('pecosa.primaria.distribuciones.ver', $version)
-            ->with('success', 'Distribución guardada y stock descontado correctamente.');
+            ->with('success', 'Distribución guardada correctamente.');
     }
 
     public function historial()
